@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "../lib/gsap";
-import { LOGO_PATH } from "./logoPath";
+import { LOGO_PATHS, LOGO_PATH } from "./logoPath";
 
 interface PreloaderProps {
   onComplete?: () => void;
@@ -14,9 +14,10 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
   const counterRef = useRef<HTMLDivElement>(null);
   const numValRef = useRef<HTMLSpanElement>(null);
   const pctValRef = useRef<HTMLSpanElement>(null);
-  const pathRef = useRef<SVGPathElement>(null);
+  const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const markFillRef = useRef<SVGPathElement>(null);
   const onCompleteRef = useRef(onComplete);
+
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
@@ -30,13 +31,54 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
 
-    const pathEl = pathRef.current;
-    if (!pathEl) return;
+    const els = pathRefs.current.filter((el): el is SVGPathElement => el !== null);
+    if (els.length !== LOGO_PATHS.length) return;
 
-    // 1. Measure and cache total path length ONCE upfront
-    const totalLength = pathEl.getTotalLength();
-    pathEl.style.strokeDasharray = `${totalLength} ${totalLength}`;
-    pathEl.style.strokeDashoffset = `${totalLength}px`;
+    // 1. Measure and cache total path lengths ONCE upfront
+    // Initialize every drawable path with:
+    // fill: none; stroke-dasharray: len; stroke-dashoffset: len; opacity: 0;
+    const pathLengths = els.map((el) => {
+      const len = el.getTotalLength();
+      el.style.fill = "none";
+      el.style.strokeDasharray = `${len} ${len}`;
+      el.style.strokeDashoffset = `${len}px`;
+      el.style.opacity = "0";
+      return len;
+    });
+
+    const totalLength = pathLengths.reduce((acc, l) => acc + l, 0);
+
+    // Compute consecutive distance segments for each path along the continuous drafting stroke
+    let accum = 0;
+    const segments = pathLengths.map((len, idx) => {
+      const startDist = accum;
+      accum += len;
+      return {
+        index: idx,
+        el: els[idx],
+        length: len,
+        startDist,
+        endDist: accum,
+        startP: startDist / totalLength,
+        endP: accum / totalLength,
+      };
+    });
+
+    // 2. Build the GSAP master timeline for the continuous sequential drafting sequence
+    const masterTl = gsap.timeline({ paused: true });
+    segments.forEach((seg) => {
+      const dur = seg.length / totalLength;
+      const start = seg.startP;
+
+      // Reveal only the currently drawing path immediately when its stroke begins
+      masterTl.set(seg.el, { opacity: 1 }, start > 0 ? start : 0.0001);
+      masterTl.fromTo(
+        seg.el,
+        { strokeDashoffset: seg.length },
+        { strokeDashoffset: 0, duration: dur, ease: "none" },
+        start
+      );
+    });
 
     const progressProxy = { value: 0 };
     let lastPct = -1;
@@ -48,24 +90,55 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
     // Efficient display updater called by GSAP on each frame
     const updateDisplay = () => {
       const p = progressProxy.value;
+      const clampedP = Math.max(0, Math.min(1, p));
 
-      // Update stroke dash offset on GPU-accelerated path
-      if (pathEl) {
-        pathEl.style.strokeDashoffset = `${Math.max(0, totalLength * (1 - p))}px`;
+      if (clampedP === 0) {
+        // Frame 0 / 0%: 100% invisible logo area, no ghost outline, no dots
+        els.forEach((el, i) => {
+          el.style.opacity = "0";
+          el.style.strokeDashoffset = `${pathLengths[i]}px`;
+        });
+        if (markFillRef.current) {
+          markFillRef.current.style.opacity = "0";
+        }
+      } else {
+        masterTl.progress(clampedP);
+
+        // Deterministic high-precision segment enforcement:
+        // - Future paths: opacity 0
+        // - Past paths: opacity 1, strokeDashoffset 0
+        // - Active path: opacity 1, strokeDashoffset = remaining
+        const targetDist = clampedP * totalLength;
+        segments.forEach((seg) => {
+          if (targetDist < seg.startDist) {
+            seg.el.style.opacity = "0";
+            seg.el.style.strokeDashoffset = `${seg.length}px`;
+          } else if (targetDist >= seg.endDist) {
+            seg.el.style.opacity = "1";
+            seg.el.style.strokeDashoffset = "0px";
+          } else {
+            seg.el.style.opacity = "1";
+            const remaining = seg.length - (targetDist - seg.startDist);
+            seg.el.style.strokeDashoffset = `${Math.max(0, remaining)}px`;
+          }
+        });
       }
 
       // Batch text mutations: only mutate DOM text when integer percentage changes
-      const currentPct = Math.min(100, Math.round(p * 100));
+      const currentPct = Math.min(100, Math.round(clampedP * 100));
       if (currentPct !== lastPct) {
         lastPct = currentPct;
         if (pctValRef.current) {
           pctValRef.current.textContent = `${currentPct}%`;
         }
         if (numValRef.current) {
-          numValRef.current.textContent = p.toFixed(2);
+          numValRef.current.textContent = clampedP.toFixed(2);
         }
       }
     };
+
+    // Initial state: 0% completely invisible
+    updateDisplay();
 
     // Execution when both signature motion has reached 100% and assets are ready
     const handleCompletion = () => {
@@ -75,9 +148,11 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
       progressProxy.value = 1.0;
       updateDisplay();
 
-      if (pathEl) {
-        pathEl.style.strokeDashoffset = "0px";
-      }
+      // Ensure every original path has stroke-dashoffset: 0 and full intended opacity
+      els.forEach((el) => {
+        el.style.strokeDashoffset = "0px";
+        el.style.opacity = "1";
+      });
       if (numValRef.current) numValRef.current.textContent = "1.00";
       if (pctValRef.current) pctValRef.current.textContent = "100%";
 
@@ -86,7 +161,7 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
         gsap.to(markFillRef.current, {
           opacity: 0.92,
           duration: 0.35,
-          ease: "power2.out"
+          ease: "power2.out",
         });
       }
 
@@ -97,43 +172,48 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
           isExiting = false;
           isMotionComplete = false;
           if (markFillRef.current) markFillRef.current.style.opacity = "0";
-          if (pathEl) pathEl.style.strokeDashoffset = `${totalLength}px`;
+          els.forEach((el, i) => {
+            el.style.opacity = "0";
+            el.style.strokeDashoffset = `${pathLengths[i]}px`;
+          });
           startSignatureMotion();
         }, 1800);
         return;
       }
 
-      // AS SOON AS PRELOADER HITS 100: Trigger the website entrance immediately
-      onCompleteRef.current?.();
+      // Hold that completed 100% state briefly before transitioning out and revealing the website
+      gsap.delayedCall(0.3, () => {
+        onCompleteRef.current?.();
 
-      if (!containerRef.current) {
-        setIsFinished(true);
-        return;
-      }
-
-      // Smoothly dissolve preloader overlay directly into the already-rendered website
-      const exitTl = gsap.timeline({
-        onComplete: () => {
+        if (!containerRef.current) {
           setIsFinished(true);
+          return;
         }
-      });
 
-      exitTl
-        .to([stageRef.current, counterRef.current], {
-          opacity: 0,
-          y: -10,
-          duration: 0.25,
-          ease: "power2.out"
-        })
-        .to(
-          containerRef.current,
-          {
-            opacity: 0,
-            duration: 0.35,
-            ease: "power2.out"
+        // Smoothly dissolve preloader overlay directly into the already-rendered website
+        const exitTl = gsap.timeline({
+          onComplete: () => {
+            setIsFinished(true);
           },
-          "-=0.1"
-        );
+        });
+
+        exitTl
+          .to([stageRef.current, counterRef.current], {
+            opacity: 0,
+            y: -10,
+            duration: 0.25,
+            ease: "power2.out",
+          })
+          .to(
+            containerRef.current,
+            {
+              opacity: 0,
+              duration: 0.35,
+              ease: "power2.out",
+            },
+            "-=0.1"
+          );
+      });
     };
 
     const checkCanExit = () => {
@@ -142,7 +222,7 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
       }
     };
 
-    // Unbroken, fluid signature motion from 0% to 100% starting from the silhouette
+    // Unbroken, fluid signature drafting motion from 0% to 100%
     const startSignatureMotion = () => {
       progressProxy.value = 0;
       updateDisplay();
@@ -155,7 +235,7 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
         onComplete: () => {
           isMotionComplete = true;
           handleCompletion();
-        }
+        },
       });
     };
 
@@ -207,6 +287,7 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
 
     return () => {
       mainTween?.kill();
+      masterTl.kill();
       clearTimeout(safetyTimeout);
     };
   }, [loop]);
@@ -223,7 +304,7 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
         top: 0,
         left: 0,
         right: 0,
-        bottom: 0
+        bottom: 0,
       }}
       aria-live="polite"
       aria-label="Yanhal Signature Architectural Preloader"
@@ -242,13 +323,6 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
           className="w-full h-full overflow-visible transform-gpu"
         >
           <defs>
-            {/* Subtle Ghost Silhouette Gradient for background guide */}
-            <linearGradient id="metallic-ghost-gold" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#FAF8F5" stopOpacity="0.18" />
-              <stop offset="50%" stopColor="#E0B9A0" stopOpacity="0.14" />
-              <stop offset="100%" stopColor="#AE917E" stopOpacity="0.10" />
-            </linearGradient>
-
             {/* Authentic metallic architectural gold gradient for signature drafting line */}
             <linearGradient id="metallic-architectural-gold" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#FAF8F5" />
@@ -256,7 +330,7 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
               <stop offset="100%" stopColor="#AE917E" />
             </linearGradient>
 
-            {/* Solid gold insignia fill */}
+            {/* Solid gold insignia fill that solidifies at 100% */}
             <linearGradient id="metallic-solid-gold" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#FAF8F5" />
               <stop offset="50%" stopColor="#E0B9A0" />
@@ -264,38 +338,35 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
             </linearGradient>
           </defs>
 
-          {/* Ghost Silhouette Layer: Visible from frame 0 establishing the architectural mark */}
-          <path
-            d={LOGO_PATH}
-            fill="none"
-            stroke="url(#metallic-ghost-gold)"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="miter"
-            strokeMiterlimit="3"
-            className="pointer-events-none"
-          />
-
-          {/* Solid architectural gold fill that smoothly solidifies at 100% */}
+          {/* Solid architectural gold fill that smoothly solidifies when drawing completes at 100% */}
           <path
             ref={markFillRef}
             d={LOGO_PATH}
             fill="url(#metallic-solid-gold)"
-            className="opacity-0 pointer-events-none transition-opacity duration-300"
+            style={{ opacity: 0 }}
+            className="pointer-events-none transition-opacity duration-300"
           />
 
-          {/* Active Signature Drafting Path: Traces starting from the silhouette in signature format */}
-          <path
-            ref={pathRef}
-            d={LOGO_PATH}
-            fill="none"
-            stroke="url(#metallic-architectural-gold)"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="miter"
-            strokeMiterlimit="3"
-            className="will-change-[stroke-dashoffset]"
-          />
+          {/* Ordered sequential drafting paths forming a single continuous drafting stroke */}
+          <g id="preloader-drafting-paths">
+            {LOGO_PATHS.map((d, i) => (
+              <path
+                key={i}
+                ref={(el) => {
+                  pathRefs.current[i] = el;
+                }}
+                d={d}
+                fill="none"
+                stroke="url(#metallic-architectural-gold)"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="miter"
+                strokeMiterlimit="3"
+                style={{ opacity: 0 }}
+                className="will-change-[stroke-dashoffset,opacity]"
+              />
+            ))}
+          </g>
         </svg>
       </div>
 
