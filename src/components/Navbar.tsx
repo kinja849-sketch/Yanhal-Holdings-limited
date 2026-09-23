@@ -11,6 +11,7 @@ import {
   MapPinIcon
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "motion/react";
+import ChrHover from "./ChrHover";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -123,10 +124,10 @@ export default function Navbar() {
         <div className="flex items-center gap-2.5 sm:gap-4">
           <a
             href="#estimator"
-            className="hidden sm:inline-flex items-center gap-2 text-[10px] font-mono font-medium tracking-[0.2em] uppercase text-[#E0B9A0] border border-[#E0B9A0]/40 px-3.5 py-1.5 hover:bg-[#E0B9A0] hover:text-[#2D2926] transition-all duration-300 rounded-full shadow-[0_0_12px_rgba(224,185,160,0.15)] active:scale-95 font-bold"
+            className="hidden sm:inline-flex items-center gap-2 text-[10px] font-mono font-medium tracking-[0.2em] uppercase text-[#E0B9A0] border border-[#E0B9A0]/40 px-3.5 py-1.5 hover:bg-[#E0B9A0] hover:text-[#2D2926] transition-all duration-300 rounded-full shadow-[0_0_12px_rgba(224,185,160,0.15)] active:scale-95 font-bold group"
           >
-            <span>Estimate</span>
-            <ArrowUpRightIcon className="w-3 h-3 stroke-[2]" />
+            <ChrHover text="ESTIMATE" hoverColor="#2D2926" className="text-[10px] font-mono font-bold tracking-[0.2em]" />
+            <ArrowUpRightIcon className="w-3 h-3 stroke-[2] text-[#E0B9A0] group-hover:text-[#2D2926]" />
           </a>
 
           <button 
@@ -135,9 +136,11 @@ export default function Navbar() {
             aria-label="Toggle navigation menu"
             aria-expanded={isMenuOpen}
           >
-            <span className="text-[10px] sm:text-[11px] font-mono tracking-[0.22em] uppercase text-white/80 group-hover:text-[#E0B9A0] transition-colors">
-              {isMenuOpen ? "CLOSE" : "MENU"}
-            </span>
+            <ChrHover 
+              text={isMenuOpen ? "CLOSE" : "MENU"} 
+              hoverColor="#E0B9A0" 
+              className="text-[10px] sm:text-[11px] font-mono tracking-[0.22em] uppercase text-white/80 group-hover:text-[#E0B9A0]" 
+            />
 
             {/* Refined 3-bar architectural hamburger animation */}
             <div className="w-4 h-3 flex flex-col justify-between items-end relative overflow-hidden">
@@ -234,9 +237,11 @@ export default function Navbar() {
                       </div>
 
                       <div className="flex flex-col">
-                        <span className={`text-lg sm:text-xl font-display font-medium tracking-[0.14em] uppercase text-white group-hover:${item.accent} transition-colors`}>
-                          {item.label}
-                        </span>
+                        <ChrHover
+                          text={item.label}
+                          hoverColor="#E0B9A0"
+                          className="text-lg sm:text-xl font-display font-medium tracking-[0.14em] uppercase text-white"
+                        />
                         <span className="text-[10px] text-white/40 font-sans tracking-wide">
                           {item.tagline}
                         </span>

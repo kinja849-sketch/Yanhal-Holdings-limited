@@ -324,3 +324,337 @@ body {
   }
 }
 
+/* ================= LUKE BAFFAIT MOTION & INTERACTIVE DESIGN SYSTEM ================= */
+
+/* Character Rolling Kinetic Hover Effect */
+.chr-hover {
+  display: inline-flex;
+  align-items: baseline;
+  cursor: default;
+  text-decoration: none;
+  color: inherit;
+  user-select: none;
+  vertical-align: middle;
+}
+
+a.chr-hover,
+button.chr-hover {
+  cursor: pointer;
+}
+
+.ch-wrap {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.ch-top,
+.ch-bot {
+  display: block;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  line-height: inherit;
+  color: inherit;
+  transition: transform 0.55s cubic-bezier(0.87, 0, 0.13, 1);
+  transition-delay: calc(var(--i, 0) * 22ms);
+  will-change: transform;
+}
+
+.ch-bot {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  color: var(--hover-color, #E0B9A0);
+}
+
+.chr-hover:hover .ch-top,
+.group:hover .chr-hover .ch-top {
+  transform: translateY(-100%);
+}
+
+.chr-hover:hover .ch-bot,
+.group:hover .chr-hover .ch-bot {
+  transform: translateY(-100%);
+}
+
+/* Frame Corner Crosshairs / Brackets */
+.reveal-corner,
+.frame-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0.65;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.group:hover .reveal-corner,
+.group:hover .frame-corner {
+  opacity: 1;
+}
+
+.reveal-corner::before,
+.reveal-corner::after,
+.frame-corner::before,
+.frame-corner::after {
+  content: '';
+  position: absolute;
+  background: #E0B9A0;
+}
+
+.reveal-corner::before,
+.frame-corner::before {
+  width: 1.5px;
+  height: 100%;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.reveal-corner::after,
+.frame-corner::after {
+  height: 1.5px;
+  width: 100%;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.reveal-corner.tl,
+.frame-corner.tl {
+  top: 1.25rem;
+  left: 1.25rem;
+}
+
+.reveal-corner.tr,
+.frame-corner.tr {
+  top: 1.25rem;
+  right: 1.25rem;
+}
+
+.reveal-corner.bl,
+.frame-corner.bl {
+  bottom: 1.25rem;
+  left: 1.25rem;
+}
+
+.reveal-corner.br,
+.frame-corner.br {
+  bottom: 1.25rem;
+  right: 1.25rem;
+}
+
+/* Fixed Scroll Percentage Indicator (Left Margin) */
+.scroll-pct {
+  position: fixed;
+  left: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 85;
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(0.72rem, 0.95vw, 0.85rem);
+  font-weight: 600;
+  color: #E0B9A0;
+  letter-spacing: 0.15em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  user-select: none;
+  background: rgba(8, 8, 9, 0.6);
+  padding: 4px 8px;
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(224, 185, 160, 0.15);
+}
+
+.scroll-pct.visible {
+  opacity: 1;
+}
+
+/* Fixed Scroll Navigation Timeline (Right Margin) */
+.scroll-timeline {
+  position: fixed;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 85;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 60vh;
+  max-height: 480px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  user-select: none;
+}
+
+.scroll-timeline.visible {
+  opacity: 1;
+}
+
+.st-label {
+  position: absolute;
+  right: calc(100% + 14px);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #FAF8F5;
+  white-space: nowrap;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: top 0.25s ease-out;
+  background: rgba(8, 8, 9, 0.75);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(224, 185, 160, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.st-label span {
+  color: #E0B9A0;
+  margin-right: 4px;
+}
+
+.st-bar {
+  position: relative;
+  width: 3px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.st-seg {
+  flex: 1;
+  position: relative;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  pointer-events: auto;
+  border-radius: 3px;
+  overflow: hidden;
+  transform-origin: center;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+}
+
+.st-seg:hover {
+  transform: scaleX(2.8);
+  background: rgba(224, 185, 160, 0.3);
+}
+
+.scroll-timeline:not(.visible) .st-seg {
+  pointer-events: none;
+}
+
+.st-seg::before {
+  content: '';
+  position: absolute;
+  inset: -4px -12px;
+}
+
+.st-seg-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: #E0B9A0;
+  box-shadow: 0 0 8px rgba(224, 185, 160, 0.8);
+  transition: height 0.1s linear;
+}
+
+/* Floating Project & Service Cursor Pill */
+.proj-cursor {
+  position: fixed;
+  pointer-events: none;
+  z-index: 150;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.85);
+  background: #E0B9A0;
+  color: #080809;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.75em 1.4em;
+  border-radius: 50px;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(224, 185, 160, 0.4);
+}
+
+.proj-cursor.active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Kinetic Word Blur Reveal */
+.word-blur-reveal {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateY(12px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), 
+              filter 0.8s cubic-bezier(0.16, 1, 0.3, 1), 
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.word-blur-reveal.revealed {
+  opacity: 1;
+  filter: blur(0px);
+  transform: translateY(0);
+}
+
+/* ================= FLUID DRAWING SVG LINE ================= */
+.fluid-line-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 65;
+  overflow: visible;
+}
+
+.fluid-line {
+  fill: none;
+  stroke: url(#fluidLineGrad);
+  stroke-width: 22;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 16px rgba(255, 56, 30, 0.7));
+}
+
+/* Kinetic Word Blur Text Animation on Scroll */
+.scroll-blur-text {
+  display: inline;
+}
+
+.scroll-blur-word {
+  display: inline-block;
+  opacity: 0.18;
+  filter: blur(8px);
+  transform: translateY(12px);
+  will-change: opacity, filter, transform;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-blur-word.revealed {
+  opacity: 1;
+  filter: blur(0px);
+  transform: translateY(0px);
+}
+

@@ -14,6 +14,8 @@ import Estimator from "./components/Estimator";
 import Contact from "./components/Contact";
 import Footer from "./components/Footer";
 import FeatureSection from "./components/FeatureSection";
+import ScrollTimeline from "./components/ScrollTimeline";
+import FluidLineLoop from "./components/FluidLineLoop";
 import { gsap, useGSAP, ScrollTrigger } from "./lib/gsap";
 
 export default function App() {
@@ -195,6 +197,7 @@ export default function App() {
         }}
       >
         <Navbar />
+        <ScrollTimeline />
 
         {/* Architectural Section Dwell Spacer: Desktop-only scroll buffer ensuring previous section is fully displayed before next section layers over */}
         {/* 01. Hero */}
@@ -221,27 +224,34 @@ export default function App() {
         </div>
         <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
-        {/* 05. Engineering & Finishing Scope */}
-        <div id="panel-services" className="section-panel panel section-panel-elevated relative z-50 bg-[#FAF8F5]">
-          <Services />
-        </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
+        {/* 05 & 06 Connected Span with Continuous Fluid Drawing Line Loop */}
+        <div className="relative w-full">
+          <div className="absolute inset-0 pointer-events-none z-[65] overflow-visible">
+            <FluidLineLoop />
+          </div>
 
-        {/* 06. Industrial & Commercial Engineering */}
-        <div id="panel-feature-industrial" className="section-panel panel section-panel-elevated relative z-60 bg-[#FAF8F5]">
-          <FeatureSection 
-            title="Industrial & Commercial Engineering"
-            subtitle="Structural Performance • 06"
-            description="We deliver high-performance structural solutions for industrial and commercial facilities, ensuring durability, precision, and operational efficiency."
-            image="https://lh3.googleusercontent.com/aida-public/AB6AXuD81-4lALGQwufXU647htptVo5VBqEZ9_8CU1SZfsYB8EvbuKIUNAF6GmRdFY4XHnzkPeRcPTE17NV4ioer5zYdqdlEQUioMu0-Kh8gg8WRIBjg99WghG-WHIN3GCV6xKaCH-6KepCQYzAOPzlpytUze9Q9sGoyARU47VQLjrbmYgU6EcinP-u_-fRnA1yoaTflP8LZ-SoPEOWNmLE7S9uumUU8djTL4Rruh3QcLWAr4BGZMXpmW2eT5V1UCZLxMZxbreaOWpKs-Lw"
-            features={[
-              { icon: "precision_manufacturing", title: "Technical Precision", desc: "Rigorous engineering standards for every structural component." },
-              { icon: "speed", title: "Efficient Delivery", desc: "Optimized project management to meet strict commercial timelines." },
-              { icon: "security", title: "Safety Compliance", desc: "Full adherence to local building codes and safety regulations." }
-            ]}
-            theme="white"
-            siteProgressGallery
-          />
+          {/* 05. Engineering & Finishing Scope */}
+          <div id="panel-services" className="section-panel panel section-panel-elevated relative z-50 bg-[#FAF8F5]">
+            <Services />
+          </div>
+          <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
+
+          {/* 06. Industrial & Commercial Engineering */}
+          <div id="panel-feature-industrial" className="section-panel panel section-panel-elevated relative z-60 bg-[#FAF8F5]">
+            <FeatureSection 
+              title="Industrial & Commercial Engineering"
+              subtitle="Structural Performance • 06"
+              description="We deliver high-performance structural solutions for industrial and commercial facilities, ensuring durability, precision, and operational efficiency."
+              image="https://lh3.googleusercontent.com/aida-public/AB6AXuD81-4lALGQwufXU647htptVo5VBqEZ9_8CU1SZfsYB8EvbuKIUNAF6GmRdFY4XHnzkPeRcPTE17NV4ioer5zYdqdlEQUioMu0-Kh8gg8WRIBjg99WghG-WHIN3GCV6xKaCH-6KepCQYzAOPzlpytUze9Q9sGoyARU47VQLjrbmYgU6EcinP-u_-fRnA1yoaTflP8LZ-SoPEOWNmLE7S9uumUU8djTL4Rruh3QcLWAr4BGZMXpmW2eT5V1UCZLxMZxbreaOWpKs-Lw"
+              features={[
+                { icon: "precision_manufacturing", title: "Technical Precision", desc: "Rigorous engineering standards for every structural component." },
+                { icon: "speed", title: "Efficient Delivery", desc: "Optimized project management to meet strict commercial timelines." },
+                { icon: "security", title: "Safety Compliance", desc: "Full adherence to local building codes and safety regulations." }
+              ]}
+              theme="white"
+              siteProgressGallery
+            />
+          </div>
         </div>
         <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
