@@ -1,0 +1,11 @@
+node_modules/
+temp-clone/
+.gemini/
+.vscode/
+dist/
+.env
+firebase-applet-config.json
+firebase-blueprint.json
+.netlify/
+.DS_Store
+Thumbs.db

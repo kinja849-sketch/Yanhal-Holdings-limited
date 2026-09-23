@@ -1,0 +1,326 @@
+@import "tailwindcss";
+@import "lenis/dist/lenis.css";
+
+@theme {
+  --color-primary: #E0B9A0;
+  --color-accent-100: #E0B9A0;
+  --color-accent-200: #AE917E;
+  --color-accent-dark: #AE917E;
+  
+  --color-dark: #2D2926;
+  --color-espresso: #2D2926;
+  --color-noir: #080809;
+  --color-background-dark: #080809;
+  --color-surface-dark: #181514;
+  --color-charcoal: #221D1A;
+  --color-graphite: #2D2926;
+  --color-concrete: #3C3632;
+
+  --color-neutral-100: #FFFFFF;
+  --color-neutral-200: #9D9189;
+  --color-neutral-300: #867163;
+  --color-neutral-700: #2D2926;
+  --color-neutral-800: #1D1A18;
+  --color-neutral-900: #080809;
+
+  --color-ivory: #FAF8F5;
+  --color-linen: #F3EFE6;
+  --color-sand: #E5DFD3;
+  --color-stone: #9D9189;
+  --color-bronze: #867163;
+
+  /* Aliased for smooth backward compatibility with existing component classes */
+  --color-obsidian: #080809;
+  --color-obsidian-card: #181514;
+  --color-obsidian-hover: #221D1A;
+
+  --color-violet-vivid: #E0B9A0;
+  --color-violet-electric: #E0B9A0;
+  --color-violet-neon: #FAF8F5;
+  --color-violet-muted: #AE917E;
+
+  --color-lime-vivid: #AE917E;
+  --color-lime-electric: #E0B9A0;
+  --color-lime-neon: #F5E5DC;
+  --color-lime-muted: #867163;
+
+  --color-white-pure: #FFFFFF;
+  --color-chalk: #FAF8F5;
+
+  --color-sage: #5E705D;
+  --color-sage-soft: #EBF0EA;
+  --color-sage-dark: #3D4A3C;
+
+  --color-terracotta: #AE917E;
+  --color-terracotta-soft: #F7ECE7;
+  --color-terracotta-dark: #6E5343;
+
+  --color-dusty-blue: #4E6578;
+  --color-dusty-blue-soft: #EEF3F7;
+  --color-dusty-blue-dark: #2F3E4C;
+
+  --color-amber-warm: #E0B9A0;
+  --color-amber-warm-soft: #FBF4E8;
+  --color-amber-warm-dark: #8F5E16;
+
+  --color-gold-subtle: #E0B9A0;
+  --color-ivory-soft: #FAF8F5;
+  --color-stone-muted: #9D9189;
+
+  --font-display: "Syncopate", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "Space Grotesk", monospace;
+  --font-accent: "Cinzel Decorative", serif;
+  --font-jakarta: "Plus Jakarta Sans", sans-serif;
+  --font-playfair: "Playfair Display", serif;
+
+  /* Official Brand Palette System */
+  --color-brand-black: #080809;
+  --color-brand-violet: #2D2926;
+  --color-brand-lime: #E0B9A0;
+  --color-brand-white: #FAF8F5;
+}
+
+/* ================= SECTION ATMOSPHERES ================= */
+.section-brand-black {
+  background-color: #080809;
+  color: #FAF8F5;
+}
+
+.section-brand-violet {
+  background-color: #2D2926;
+  color: #FAF8F5;
+}
+
+.section-brand-lime {
+  background-color: #E0B9A0;
+  color: #2D2926;
+}
+
+.section-brand-white {
+  background-color: #FAF8F5;
+  color: #2D2926;
+}
+
+/* ================= SECTION SPACING TOKEN SYSTEM ================= */
+/*
+  Consistent vertical rhythm across all sections.
+  Hero and other deliberately full-screen sections are excluded.
+*/
+:root {
+  --section-pt: clamp(4rem, 8vw, 7rem);
+  --section-pb: clamp(4rem, 8vw, 7rem);
+}
+
+.section-py {
+  padding-top: var(--section-pt);
+  padding-bottom: var(--section-pb);
+}
+
+/* ================= SECTION COLOR BLEED (DISABLED — ZERO HEIGHT) ================= */
+/*
+  These classes are kept for backward compatibility but no longer
+  contribute any layout height. Section boundaries are achieved by
+  adjacent background colors meeting cleanly. Do not use these
+  as standalone layout divs — they will be invisible.
+*/
+.bleed-light-to-dark,
+.bleed-dark-to-light {
+  display: none;
+}
+
+.editorial-translucent {
+  color: rgba(250, 248, 245, 0.94);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.55), 0 1px 6px rgba(0, 0, 0, 0.4);
+}
+
+.editorial-subtle {
+  color: rgba(243, 239, 230, 0.78);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.45);
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-background-dark text-[#FAF8F5] font-sans selection:bg-[#E0B9A0] selection:text-[#2D2926];
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  min-height: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure mobile form controls don't trigger iOS auto-zoom by defaulting to 16px font-size */
+@media screen and (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Fluid fill-on-hover button interaction with tactile active touch feedback */
+.btn-fill-hover {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              color 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.btn-fill-hover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateY(102%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-fill-hover:hover::before {
+    transform: translateY(0);
+  }
+}
+
+.btn-fill-hover:active {
+  transform: scale(0.97);
+}
+
+.btn-fill-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Masked reveal & Typography Splitting helpers */
+.title-char-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  line-height: 1;
+}
+
+.title-char-inner {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+.clip-reveal {
+  clip-path: inset(0% 0% 0% 0%);
+  transition: clip-path 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.clip-reveal-hidden {
+  clip-path: inset(0% 0% 100% 0%);
+}
+
+/* Stable CSS inset template driven by numerical custom properties for GSAP wipes */
+.portrait-wipe-frame {
+  clip-path: inset(
+    calc(var(--clip-t, 0) * 1%)
+    calc(var(--clip-r, 0) * 1%)
+    calc(var(--clip-b, 0) * 1%)
+    calc(var(--clip-l, 0) * 1%)
+  );
+  will-change: clip-path;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+}
+
+.fill-1 {
+  font-variation-settings: 'FILL' 1, 'wght' 400 !important;
+}
+
+/* Light Section Architectural Styling Helpers */
+.card-light {
+  background: #FFFFFF;
+  border: 1px solid rgba(45, 41, 38, 0.08);
+  box-shadow: 0 10px 30px -8px rgba(45, 41, 38, 0.06), 0 4px 12px -2px rgba(45, 41, 38, 0.03);
+}
+
+.card-light-hover {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease;
+}
+
+.card-light-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -12px rgba(45, 41, 38, 0.12), 0 6px 16px -4px rgba(45, 41, 38, 0.05);
+  border-color: rgba(224, 185, 160, 0.6);
+}
+
+.glass-frosted {
+  background: rgba(24, 21, 20, 0.75);
+  backdrop-filter: blur(18px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+}
+
+.glass-card-violet {
+  background: linear-gradient(135deg, rgba(224, 185, 160, 0.08) 0%, rgba(24, 21, 20, 0.8) 100%);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(224, 185, 160, 0.25);
+}
+
+.glass-card-lime {
+  background: linear-gradient(135deg, rgba(174, 145, 126, 0.08) 0%, rgba(24, 21, 20, 0.8) 100%);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(174, 145, 126, 0.25);
+}
+
+.service-card img {
+  transition: transform 1.2s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.service-card:hover img {
+  transform: scale(1.08);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Accessibility: respect user prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ================= GSAP SECTION TRANSITION LAYER SYSTEM ================= */
+.section-panel {
+  position: relative;
+  width: 100%;
+  transform-origin: center top;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1024px) {
+  .section-panel {
+    will-change: transform, opacity;
+  }
+
+  /* Architectural subtle elevation shadow for layered panel entry */
+  .section-panel-elevated {
+    box-shadow: 0 -20px 40px -15px rgba(0, 0, 0, 0.45);
+  }
+}
+
