@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "../lib/gsap";
+import { transitionManager } from "../lib/transitionManager";
 import { LOGO_PATHS, LOGO_PATH } from "./logoPath";
 
 interface PreloaderProps {
@@ -181,38 +182,28 @@ export default function Preloader({ onComplete, loop = false }: PreloaderProps) 
         return;
       }
 
-      // Hold that completed 100% state briefly before transitioning out and revealing the website
-      gsap.delayedCall(0.3, () => {
-        onCompleteRef.current?.();
-
-        if (!containerRef.current) {
-          setIsFinished(true);
-          return;
+      // Hold that completed 100% state briefly, then trigger the cinematic transition before revealing the main website
+      gsap.delayedCall(0.25, () => {
+        // Fade out preloader stroke mark & counter subtly as transition layer sweeps in
+        if (stageRef.current && counterRef.current) {
+          gsap.to([stageRef.current, counterRef.current], {
+            opacity: 0,
+            y: -8,
+            duration: 0.35,
+            ease: "power2.out",
+          });
         }
 
-        // Smoothly dissolve preloader overlay directly into the already-rendered website
-        const exitTl = gsap.timeline({
-          onComplete: () => {
+        // Trigger the cinematic transition over the preloader into the home section
+        transitionManager.transitionTo({
+          destination: "#home",
+          label: "YANHAL HOLDINGS",
+          onCustomAction: () => {
+            // Screen is now 100% covered by the transition layer: hand off to main website
+            onCompleteRef.current?.();
             setIsFinished(true);
           },
         });
-
-        exitTl
-          .to([stageRef.current, counterRef.current], {
-            opacity: 0,
-            y: -10,
-            duration: 0.25,
-            ease: "power2.out",
-          })
-          .to(
-            containerRef.current,
-            {
-              opacity: 0,
-              duration: 0.35,
-              ease: "power2.out",
-            },
-            "-=0.1"
-          );
       });
     };
 

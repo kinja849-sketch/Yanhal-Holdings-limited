@@ -17,32 +17,12 @@ import FeatureSection from "./components/FeatureSection";
 import ScrollTimeline from "./components/ScrollTimeline";
 import FluidLineLoop from "./components/FluidLineLoop";
 import CinematicTransition from "./components/CinematicTransition";
-import SoundSticker from "./components/SoundSticker";
 import { transitionManager } from "./lib/transitionManager";
-import { audioManager } from "./lib/audioManager";
 import { gsap, useGSAP, ScrollTrigger } from "./lib/gsap";
 
 export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const mainContainerRef = useRef<HTMLDivElement>(null);
-
-  // Sync with audioManager and track scroll position for persistent floating audio sticker
-  useEffect(() => {
-    const unsubAudio = audioManager.subscribe((playing) => {
-      setIsPlayingAudio(playing);
-    });
-    const handleScroll = () => {
-      const scrollY = window.scrollY || document.documentElement.scrollTop;
-      setIsScrolledPastHero(scrollY > 400);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      unsubAudio();
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
 
   // Strictly lock document and body scrolling while preloader is active
   useEffect(() => {
@@ -388,19 +368,6 @@ export default function App() {
           <Footer />
         </div>
       </div>
-
-      {/* Persistent Floating Tactical Sound Sticker (Visible across all sections) */}
-      {isLoaded && isScrolledPastHero && (
-        <div className="fixed bottom-6 right-6 z-[80] pointer-events-auto transition-all duration-300">
-          <SoundSticker
-            isPlayingAudio={isPlayingAudio}
-            onToggle={() => audioManager.toggle()}
-            size="compact"
-            showLabel={true}
-            className="bg-[#181514]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:border-[#E0B9A0]/60"
-          />
-        </div>
-      )}
     </div>
   );
 }

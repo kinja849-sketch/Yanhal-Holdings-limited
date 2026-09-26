@@ -11,11 +11,9 @@ import {
 export default function CinematicTransition() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
-  const logoRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
 
   const [activeTheme, setActiveTheme] = useState<TransitionTheme>(YANHAL_TRANSITION_THEMES.default);
-  const [destinationLabel, setDestinationLabel] = useState<string>("YANHAL HOLDINGS");
   const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
@@ -23,18 +21,15 @@ export default function CinematicTransition() {
     const unsubscribe = transitionManager.subscribe(
       (payload: TransitionPayload, onCovered: () => void, onComplete: () => void) => {
         const theme = payload.theme || YANHAL_TRANSITION_THEMES.default;
-        const label = payload.label || "YANHAL HOLDINGS";
 
         setActiveTheme(theme);
-        setDestinationLabel(label);
         setIsActive(true);
 
         const container = containerRef.current;
         const path = pathRef.current;
-        const logo = logoRef.current;
         const backdrop = backdropRef.current;
 
-        if (!container || !path || !logo || !backdrop) {
+        if (!container || !path || !backdrop) {
           onCovered();
           onComplete();
           setIsActive(false);
@@ -54,9 +49,7 @@ export default function CinematicTransition() {
           });
 
           tl.to(backdrop, { opacity: 1, duration: 0.25, ease: "power2.out" })
-            .to(logo, { opacity: 1, duration: 0.15, ease: "power1.out" }, "-=0.1")
             .add(() => { onCovered(); })
-            .to(logo, { opacity: 0, duration: 0.15, ease: "power1.in" }, "+=0.1")
             .to(backdrop, { opacity: 0, duration: 0.25, ease: "power2.in" });
 
           return;
@@ -75,10 +68,9 @@ export default function CinematicTransition() {
         }
 
         // Reset elements before entrance
-        gsap.killTweensOf([container, path, logo, backdrop]);
+        gsap.killTweensOf([container, path, backdrop]);
         gsap.set(container, { autoAlpha: 1 });
         gsap.set(backdrop, { opacity: 0 });
-        gsap.set(logo, { autoAlpha: 0, scale: 0.9, y: 15 });
 
         // Initialize SVG Scribble: Starts at 0% length (offset = pathLength) and thin stroke (8%)
         gsap.set(path, {
@@ -97,7 +89,7 @@ export default function CinematicTransition() {
           },
         });
 
-        // Step 1: Draw in across the screen (0.8s) while expanding stroke width to 31%
+        // Step 1: Draw in across the screen (0.85s) while expanding stroke width to 31%
         // Exactly matches reference: Power1.easeInOut for draw, Power2.easeInOut for strokeWidth
         tl.to(path, {
           strokeDashoffset: 0,
@@ -117,31 +109,13 @@ export default function CinematicTransition() {
           ease: "power2.inOut",
         }, 0.6);
 
-        // Step 2: Signature Yanhal Logo & Destination Tag reveal at 0.4s with tactile scale
-        tl.to(logo, {
-          autoAlpha: 1,
-          scale: 1,
-          y: 0,
-          duration: 0.35,
-          ease: "power3.out",
-        }, 0.4);
-
-        // Step 3: At peak occlusion (0.85s), perform destination change underneath
+        // Step 2: At peak occlusion (0.85s), perform destination change underneath
         tl.add(() => {
           onCovered();
         }, 0.85);
 
-        // Step 4: Logo departs at 1.0s
-        tl.to(logo, {
-          autoAlpha: 0,
-          scale: 1.04,
-          y: -10,
-          duration: 0.25,
-          ease: "power2.in",
-        }, 1.0);
-
-        // Step 5: Path draws out smoothly (0% 100% -> 100% 100%) while stroke shrinks back to 8%
-        // Duration 1.2s matching reference drawSVG 100% 100% ease Power2.easeInOut
+        // Step 3: Path draws out smoothly (0% 100% -> 100% 100%) while stroke shrinks back to 8%
+        // Duration 1.15s matching reference drawSVG 100% 100% ease Power2.easeInOut
         tl.to(path, {
           strokeDashoffset: -pathLength,
           duration: 1.15,
@@ -166,7 +140,6 @@ export default function CinematicTransition() {
       if (container) {
         gsap.killTweensOf(container);
         if (pathRef.current) gsap.killTweensOf(pathRef.current);
-        if (logoRef.current) gsap.killTweensOf(logoRef.current);
         if (backdropRef.current) gsap.killTweensOf(backdropRef.current);
 
         gsap.set(container, { autoAlpha: 0 });
@@ -188,7 +161,7 @@ export default function CinematicTransition() {
   return createPortal(
     <div
       ref={containerRef}
-      className="transition-container fixed inset-0 w-full h-[100dvh] pointer-events-none z-[9999] overflow-hidden"
+      className="transition-container fixed inset-0 w-full h-[100dvh] pointer-events-none z-[100000] overflow-hidden"
       style={{ opacity: 0, visibility: "hidden" }}
       aria-hidden={!isActive}
     >
@@ -228,57 +201,6 @@ export default function CinematicTransition() {
           strokeLinejoin="round"
         />
       </svg>
-
-      {/* Centered Yanhal Signature Identity & Destination Reveal */}
-      <div
-        ref={logoRef}
-        className="transition-logo absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-6 text-center select-none"
-        style={{ opacity: 0 }}
-      >
-        {/* Architectural Emblem with Ambient Backlight Glow */}
-        <div className="relative mb-3 flex items-center justify-center">
-          <div
-            className="absolute inset-0 rounded-full blur-2xl scale-125 opacity-40 animate-pulse"
-            style={{ backgroundColor: activeTheme.accent }}
-          />
-          <img
-            src="/yanhal-emblem.svg"
-            alt="Yanhal Emblem"
-            className="h-16 sm:h-20 w-auto object-contain drop-shadow-[0_0_25px_rgba(224,185,160,0.55)] relative z-10"
-            style={{ aspectRatio: "300 / 386" }}
-          />
-        </div>
-
-        {/* Wordmark */}
-        <div className="flex items-center gap-2 mb-2">
-          <span
-            className="font-display font-bold tracking-[0.24em] text-sm sm:text-base uppercase"
-            style={{ color: activeTheme.text }}
-          >
-            YANHAL <span style={{ color: activeTheme.accent }}>HOLDINGS</span>
-          </span>
-        </div>
-
-        {/* Destination Status Pill */}
-        <div
-          className="flex items-center gap-2 px-4 py-1.5 rounded-full border backdrop-blur-md shadow-2xl"
-          style={{
-            borderColor: `${activeTheme.accent}50`,
-            backgroundColor: `${activeTheme.primary}95`,
-          }}
-        >
-          <span
-            className="w-1.5 h-1.5 rounded-full animate-ping"
-            style={{ backgroundColor: activeTheme.accent }}
-          />
-          <span
-            className="font-mono text-[9px] sm:text-[10px] tracking-[0.22em] uppercase font-bold"
-            style={{ color: activeTheme.accent }}
-          >
-            {destinationLabel}
-          </span>
-        </div>
-      </div>
     </div>,
     document.body
   );

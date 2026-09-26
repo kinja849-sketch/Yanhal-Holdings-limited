@@ -1,7 +1,5 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef } from "react";
 import Navbar from "./Navbar";
-import SoundSticker from "./SoundSticker";
-import { audioManager } from "../lib/audioManager";
 import { gsap, useGSAP } from "../lib/gsap";
 import { transitionManager } from "../lib/transitionManager";
 import { 
@@ -21,18 +19,6 @@ export default function Hero({ startEntrance = true }: HeroProps) {
   const heroRef = useRef<HTMLDivElement>(null);
   const titleContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-
-  useEffect(() => {
-    audioManager.registerVideo("hero", videoRef.current);
-    const unsub = audioManager.subscribe((playing) => {
-      setIsPlayingAudio(playing);
-    });
-    return () => {
-      audioManager.unregisterVideo("hero");
-      unsub();
-    };
-  }, []);
 
   useGSAP(
     () => {
@@ -368,16 +354,6 @@ export default function Hero({ startEntrance = true }: HeroProps) {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Signature Tactile Organic Sound Sticker (Visible from Reference Link) */}
-      <div className="absolute right-4 sm:right-8 md:right-10 bottom-24 sm:bottom-28 z-30 pointer-events-auto">
-        <SoundSticker
-          isPlayingAudio={isPlayingAudio}
-          onToggle={() => audioManager.toggle()}
-          size="default"
-          showLabel={true}
-        />
       </div>
 
     </section>
