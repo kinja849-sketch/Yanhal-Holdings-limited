@@ -118,10 +118,17 @@ export default function App() {
     if (!isLoaded) return;
 
     const handleGlobalClick = (e: MouseEvent) => {
+      if (e.defaultPrevented) return;
+
       const target = e.target as HTMLElement | null;
       if (!target) return;
       const link = target.closest("a") as HTMLAnchorElement | null;
       if (!link) return;
+
+      // Do NOT intercept if within navigation or portal menu drawer (which handles its own state)
+      if (link.closest("nav") || link.closest("[data-portal-menu]") || link.hasAttribute("data-no-transition")) {
+        return;
+      }
 
       const href = link.getAttribute("href");
       if (!href || href === "#" || href.startsWith("javascript:")) return;
@@ -136,10 +143,7 @@ export default function App() {
         href.includes("instagram.com");
 
       if (isInternal || isSocialOrExternal) {
-        if (e.defaultPrevented) return;
-
         e.preventDefault();
-        e.stopPropagation();
 
         transitionManager.transitionTo({
           destination: href,
@@ -148,9 +152,9 @@ export default function App() {
       }
     };
 
-    document.addEventListener("click", handleGlobalClick, { capture: true });
+    document.addEventListener("click", handleGlobalClick);
     return () => {
-      document.removeEventListener("click", handleGlobalClick, { capture: true });
+      document.removeEventListener("click", handleGlobalClick);
     };
   }, [isLoaded]);
 

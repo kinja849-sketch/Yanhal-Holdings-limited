@@ -87,7 +87,7 @@ export default function Footer() {
 
           <div className="lg:col-span-4">
             <h4 className="text-white font-bold mb-6 sm:mb-8 uppercase tracking-widest text-[10px] sm:text-xs border-b border-white/10 pb-2 inline-block">Contact</h4>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2">
+            <div className="flex flex-row flex-wrap items-center gap-2.5 sm:gap-3 pt-2">
               {/* Headquarters / Location */}
               <a 
                 href="https://www.google.com/maps/search/?api=1&query=South+C,+Behind+Masjid+As+Salaam,+Nairobi,+Kenya" 
@@ -225,7 +225,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-16 sm:mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-[9px] sm:text-[10px] text-stone-400 uppercase tracking-widest text-center md:text-left">
-          <p>© 2024 Yanhal Holdings Ltd. All Rights Reserved.</p>
+          <p>© 2026 Yanhal Holdings Ltd. All Rights Reserved.</p>
           <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
             <a className="hover:text-[#E0B9A0] transition-colors py-1" href="#">Privacy Policy</a>
             <a className="hover:text-[#AE917E] transition-colors py-1" href="#">Terms of Service</a>

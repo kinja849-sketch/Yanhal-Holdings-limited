@@ -204,20 +204,33 @@ class TransitionManager {
       } else {
         // Internal navigation: smooth jump underneath the transition cover
         const hash = destination.startsWith("#") ? destination : `#${destination}`;
-        const targetId = hash.replace("#", "");
-        const targetEl =
-          targetId === "home"
-            ? document.documentElement
-            : document.getElementById(targetId) ||
-              document.getElementById(`panel-${targetId}`) ||
-              document.querySelector(hash);
+        const targetId = hash.replace("#", "").trim();
 
-        if (targetEl) {
-          const lenis = (window as any).__lenis;
+        // Release any modal overflow lock and restart smooth scroll
+        document.body.style.overflow = "";
+        const lenis = (window as any).__lenis;
+        if (lenis && typeof lenis.start === "function") {
+          lenis.start();
+        }
+
+        if (targetId === "home" || targetId === "") {
           if (lenis && typeof lenis.scrollTo === "function") {
-            lenis.scrollTo(targetEl, { immediate: true });
+            lenis.scrollTo(0, { immediate: true });
           } else {
-            targetEl.scrollIntoView({ behavior: "instant" as ScrollBehavior, block: "start" });
+            window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+          }
+        } else {
+          const targetEl =
+            document.getElementById(targetId) ||
+            document.getElementById(`panel-${targetId}`) ||
+            document.querySelector(hash);
+
+          if (targetEl) {
+            if (lenis && typeof lenis.scrollTo === "function") {
+              lenis.scrollTo(targetEl, { immediate: true });
+            } else {
+              targetEl.scrollIntoView({ behavior: "instant" as ScrollBehavior, block: "start" });
+            }
           }
         }
 

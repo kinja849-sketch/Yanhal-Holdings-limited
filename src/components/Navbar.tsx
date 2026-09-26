@@ -7,9 +7,7 @@ import {
   UserGroupIcon, 
   EnvelopeIcon, 
   ArrowUpRightIcon, 
-  XMarkIcon,
-  PhoneIcon,
-  MapPinIcon
+  XMarkIcon
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "motion/react";
 import ChrHover from "./ChrHover";
@@ -192,6 +190,7 @@ export default function Navbar() {
 
                 {/* Premium Slide-in Panel */}
                 <motion.div
+                  data-portal-menu="true"
                   initial={{ x: "100%" }}
                   animate={{ x: 0 }}
                   exit={{ x: "100%" }}
@@ -211,9 +210,6 @@ export default function Navbar() {
                         style={{ aspectRatio: "300 / 386" }}
                         className="h-10 w-auto object-contain shrink-0 drop-shadow-[0_0_10px_rgba(224,185,160,0.3)]"
                       />
-                      <span className="font-mono text-xs text-white/70 tracking-[0.25em] uppercase">
-                        Navigation Index
-                      </span>
                     </div>
 
                     <button
@@ -238,6 +234,10 @@ export default function Navbar() {
                         onClick={(e) => {
                           e.preventDefault();
                           setIsMenuOpen(false);
+                          document.body.style.overflow = "";
+                          if ((window as any).__lenis) {
+                            (window as any).__lenis.start();
+                          }
                           transitionManager.transitionTo({
                             destination: item.href,
                             label: `${item.number} · ${item.label.toUpperCase()}`,
@@ -272,13 +272,17 @@ export default function Navbar() {
                     ))}
                   </div>
 
-                  {/* Drawer Footer & Quick Contact */}
+                  {/* Drawer Footer */}
                   <div className="p-6 sm:p-8 border-t border-white/10 bg-black/40 relative z-10 flex flex-col gap-4">
                     <a
                       href="#estimator"
                       onClick={(e) => {
                         e.preventDefault();
                         setIsMenuOpen(false);
+                        document.body.style.overflow = "";
+                        if ((window as any).__lenis) {
+                          (window as any).__lenis.start();
+                        }
                         transitionManager.transitionTo({
                           destination: "#estimator",
                           label: "PROJECT ESTIMATOR",
@@ -289,48 +293,6 @@ export default function Navbar() {
                       <span>Request an Estimate</span>
                       <ArrowUpRightIcon className="w-3.5 h-3.5 stroke-[2]" />
                     </a>
-
-                    <div className="grid grid-cols-2 gap-3 pt-1">
-                      <a
-                        href="https://www.google.com/maps/search/?api=1&query=South+C,+Behind+Masjid+As+Salaam,+Nairobi,+Kenya"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setIsMenuOpen(false);
-                          transitionManager.transitionTo({
-                            destination: "https://www.google.com/maps/search/?api=1&query=South+C,+Behind+Masjid+As+Salaam,+Nairobi,+Kenya",
-                            label: "HEADQUARTERS · NAIROBI",
-                            isExternal: true,
-                          });
-                        }}
-                        className="flex items-center gap-2 text-white/60 hover:text-[#E0B9A0] transition-colors text-[11px] font-sans group cursor-pointer"
-                      >
-                        <MapPinIcon className="w-3.5 h-3.5 text-[#E0B9A0] shrink-0 stroke-[1.5] group-hover:scale-110 transition-transform" />
-                        <span className="truncate">South C, Nairobi</span>
-                      </a>
-                      <a
-                        href="tel:0724093256"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setIsMenuOpen(false);
-                          transitionManager.transitionTo({
-                            destination: "tel:0724093256",
-                            label: "DIRECT LINE · CALL",
-                            isExternal: true,
-                          });
-                        }}
-                        className="flex items-center gap-2 text-white/60 hover:text-[#E0B9A0] transition-colors text-[11px] font-sans group cursor-pointer"
-                      >
-                        <PhoneIcon className="w-3.5 h-3.5 text-[#E0B9A0] shrink-0 stroke-[1.5] group-hover:scale-110 transition-transform" />
-                        <span className="truncate">+254 724 093 256</span>
-                      </a>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[9px] font-mono text-white/35 uppercase tracking-widest pt-2 border-t border-white/5">
-                      <span>Yanhal Holdings Ltd</span>
-                      <span className="text-[#E0B9A0]/70">&bull; 2026</span>
-                    </div>
                   </div>
                 </motion.div>
               </>
