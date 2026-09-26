@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import Lenis from "lenis";
 import Preloader from "./components/Preloader";
-import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import WhatWeDo from "./components/WhatWeDo";
 import About from "./components/About";
@@ -9,6 +8,7 @@ import Leadership from "./components/Leadership";
 import Services from "./components/Services";
 import Process from "./components/Process";
 import Portfolio from "./components/Portfolio";
+import RestorationSlider from "./components/RestorationSlider";
 import Testimonials from "./components/Testimonials";
 import Estimator from "./components/Estimator";
 import Contact from "./components/Contact";
@@ -16,11 +16,33 @@ import Footer from "./components/Footer";
 import FeatureSection from "./components/FeatureSection";
 import ScrollTimeline from "./components/ScrollTimeline";
 import FluidLineLoop from "./components/FluidLineLoop";
+import CinematicTransition from "./components/CinematicTransition";
+import SoundSticker from "./components/SoundSticker";
+import { transitionManager } from "./lib/transitionManager";
+import { audioManager } from "./lib/audioManager";
 import { gsap, useGSAP, ScrollTrigger } from "./lib/gsap";
 
 export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const mainContainerRef = useRef<HTMLDivElement>(null);
+
+  // Sync with audioManager and track scroll position for persistent floating audio sticker
+  useEffect(() => {
+    const unsubAudio = audioManager.subscribe((playing) => {
+      setIsPlayingAudio(playing);
+    });
+    const handleScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      setIsScrolledPastHero(scrollY > 400);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      unsubAudio();
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   // Strictly lock document and body scrolling while preloader is active
   useEffect(() => {
@@ -91,6 +113,47 @@ export default function App() {
     };
   }, [isLoaded]);
 
+  // Global Event Delegation for Cinematic Navigation Transitions & Social Link Interceptions
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const link = target.closest("a") as HTMLAnchorElement | null;
+      if (!link) return;
+
+      const href = link.getAttribute("href");
+      if (!href || href === "#" || href.startsWith("javascript:")) return;
+
+      const isInternal = href.startsWith("#");
+      const isSocialOrExternal =
+        href.includes("wa.me") ||
+        href.includes("google.com/maps") ||
+        href.startsWith("tel:") ||
+        href.startsWith("mailto:") ||
+        href.includes("tiktok.com") ||
+        href.includes("instagram.com");
+
+      if (isInternal || isSocialOrExternal) {
+        if (e.defaultPrevented) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        transitionManager.transitionTo({
+          destination: href,
+          target: link.getAttribute("target") || undefined,
+        });
+      }
+    };
+
+    document.addEventListener("click", handleGlobalClick, { capture: true });
+    return () => {
+      document.removeEventListener("click", handleGlobalClick, { capture: true });
+    };
+  }, [isLoaded]);
+
   // Coordinated GSAP Section Transition System — Varied Scroll Choreography
   useGSAP(
     () => {
@@ -116,12 +179,17 @@ export default function App() {
           // through their entire content ('bottom bottom'), ensuring zero distortion or cutoff.
           const isTall = () => panel.offsetHeight > window.innerHeight + 50;
 
+          const targetNext =
+            panel.id === "panel-portfolio"
+              ? (document.getElementById("panel-rebirth") as HTMLElement) || nextPanel
+              : nextPanel;
+
           // 1. Layered Pinning ScrollTrigger:
           // Pinned with pinSpacing: false so subsequent panel glides over it
           ScrollTrigger.create({
             trigger: panel,
             start: () => (isTall() ? "bottom bottom" : "top top"),
-            endTrigger: nextPanel,
+            endTrigger: targetNext,
             end: "top top",
             pin: true,
             pinSpacing: false,
@@ -137,7 +205,7 @@ export default function App() {
             y: -25,
             ease: "none",
             scrollTrigger: {
-              trigger: nextPanel,
+              trigger: targetNext,
               start: "top bottom",
               end: "top top",
               scrub: true,
@@ -168,6 +236,9 @@ export default function App() {
       ref={mainContainerRef}
       className="min-h-screen bg-[#080809] text-[#FAF8F5] overflow-x-hidden selection:bg-[#E0B9A0] selection:text-[#2D2926]"
     >
+      {/* Full-Viewport Reference-Style Cinematic Fluid Sweep Navigation Layer */}
+      <CinematicTransition />
+
       {/* Isolated Dedicated Preloader Screen */}
       <Preloader
         onComplete={() => {
@@ -196,7 +267,6 @@ export default function App() {
           pointerEvents: isLoaded ? "auto" : "none",
         }}
       >
-        <Navbar />
         <ScrollTimeline />
 
         {/* Architectural Section Dwell Spacer: Desktop-only scroll buffer ensuring previous section is fully displayed before next section layers over */}
@@ -280,9 +350,15 @@ export default function App() {
         </div>
         <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
-        {/* 09. Portfolio & Restoration Cinema */}
+        {/* 09. Portfolio Showcase */}
         <div id="panel-portfolio" className="section-panel panel section-panel-elevated relative z-[85] bg-[#2D2926]">
           <Portfolio />
+        </div>
+        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
+
+        {/* Arts of Rebirth - Cinematic Showreel */}
+        <div id="panel-rebirth" className="relative z-[87] bg-[#080809]">
+          <RestorationSlider />
         </div>
         <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
@@ -308,6 +384,19 @@ export default function App() {
           <Footer />
         </div>
       </div>
+
+      {/* Persistent Floating Tactical Sound Sticker (Visible across all sections) */}
+      {isLoaded && isScrolledPastHero && (
+        <div className="fixed bottom-6 right-6 z-[80] pointer-events-auto transition-all duration-300">
+          <SoundSticker
+            isPlayingAudio={isPlayingAudio}
+            onToggle={() => audioManager.toggle()}
+            size="compact"
+            showLabel={true}
+            className="bg-[#181514]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 shadow-[0_8px_30px_rgba(0,0,0,0.85)] hover:border-[#E0B9A0]/60"
+          />
+        </div>
+      )}
     </div>
   );
 }

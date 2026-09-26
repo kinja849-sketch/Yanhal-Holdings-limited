@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { 
   HomeIcon, 
   Squares2X2Icon, 
@@ -12,6 +13,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "motion/react";
 import ChrHover from "./ChrHover";
+import { transitionManager } from "../lib/transitionManager";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -93,11 +95,15 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 w-full z-[100] bg-[#0A0C0E]/85 backdrop-blur-xl border-b border-white/10 transition-colors duration-300">
+    <nav className="absolute top-0 left-0 w-full z-30 bg-[#0A0C0E]/85 backdrop-blur-xl border-b border-white/10 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 h-16 sm:h-20 md:h-22 flex items-center justify-between">
         {/* Brand Logo & Wordmark */}
         <a 
           href="#home" 
+          onClick={(e) => {
+            e.preventDefault();
+            transitionManager.transitionTo({ destination: "#home", label: "01 · HOME OVERVIEW" });
+          }}
           className="flex items-center gap-2 sm:gap-3.5 lg:gap-4 group focus:outline-none shrink-0 select-none"
           aria-label="Yanhal Holdings Home"
         >
@@ -124,6 +130,10 @@ export default function Navbar() {
         <div className="flex items-center gap-2.5 sm:gap-4">
           <a
             href="#estimator"
+            onClick={(e) => {
+              e.preventDefault();
+              transitionManager.transitionTo({ destination: "#estimator", label: "PROJECT ESTIMATOR" });
+            }}
             className="hidden sm:inline-flex items-center gap-2 text-[10px] font-mono font-medium tracking-[0.2em] uppercase text-[#E0B9A0] border border-[#E0B9A0]/40 px-3.5 py-1.5 hover:bg-[#E0B9A0] hover:text-[#2D2926] transition-all duration-300 rounded-full shadow-[0_0_12px_rgba(224,185,160,0.15)] active:scale-95 font-bold group"
           >
             <ChrHover text="ESTIMATE" hoverColor="#2D2926" className="text-[10px] font-mono font-bold tracking-[0.2em]" />
@@ -165,125 +175,169 @@ export default function Navbar() {
       </div>
 
       {/* Full Architectural Slide-In Navigation Drawer */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <>
-            {/* Backdrop Blur Overlay */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-              onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 bg-black/70 backdrop-blur-md z-[110]"
-            />
-
-            {/* Premium Slide-in Panel */}
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 32, stiffness: 280 }}
-              className="fixed top-0 right-0 h-[100dvh] max-h-screen w-full sm:w-[85%] md:w-[460px] lg:w-[490px] bg-[#181514]/98 backdrop-blur-2xl border-l border-white/10 z-[120] shadow-[-25px_0_80px_rgba(0,0,0,0.9)] flex flex-col justify-between overflow-y-auto overscroll-contain"
-            >
-              {/* Subtle background ambient glow in Aroclux peach & ochre */}
-              <div className="absolute top-0 right-0 w-72 h-72 bg-[#E0B9A0]/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute bottom-10 left-0 w-64 h-64 bg-[#AE917E]/10 rounded-full blur-3xl pointer-events-none" />
-
-              {/* Drawer Header */}
-              <div className="p-6 sm:p-7 flex items-center justify-between border-b border-white/10 relative z-10">
-                <div className="flex items-center gap-3">
-                  <img 
-                    src="/yanhal-emblem.svg" 
-                    alt="Yanhal Logo" 
-                    style={{ aspectRatio: "300 / 386" }}
-                    className="h-10 w-auto object-contain shrink-0 drop-shadow-[0_0_10px_rgba(224,185,160,0.3)]"
-                  />
-                  <span className="font-mono text-xs text-white/70 tracking-[0.25em] uppercase">
-                    Navigation Index
-                  </span>
-                </div>
-
-                <button
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {isMenuOpen && (
+              <>
+                {/* Backdrop Blur Overlay */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
                   onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center gap-1.5 text-white/60 hover:text-[#E0B9A0] transition-colors text-xs font-mono uppercase tracking-widest cursor-pointer group p-2"
-                  aria-label="Close navigation"
+                  className="fixed inset-0 bg-black/70 backdrop-blur-md z-[110]"
+                />
+
+                {/* Premium Slide-in Panel */}
+                <motion.div
+                  initial={{ x: "100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "100%" }}
+                  transition={{ type: "spring", damping: 32, stiffness: 280 }}
+                  className="fixed top-0 right-0 h-[100dvh] max-h-screen w-full sm:w-[85%] md:w-[460px] lg:w-[490px] bg-[#181514]/98 backdrop-blur-2xl border-l border-white/10 z-[120] shadow-[-25px_0_80px_rgba(0,0,0,0.9)] flex flex-col justify-between overflow-y-auto overscroll-contain"
                 >
-                  <span className="group-hover:translate-x-[-2px] transition-transform text-[11px]">ESC</span>
-                  <XMarkIcon className="w-4 h-4 text-[#E0B9A0] stroke-[2]" />
-                </button>
-              </div>
+                  {/* Subtle background ambient glow in Aroclux peach & ochre */}
+                  <div className="absolute top-0 right-0 w-72 h-72 bg-[#E0B9A0]/10 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute bottom-10 left-0 w-64 h-64 bg-[#AE917E]/10 rounded-full blur-3xl pointer-events-none" />
 
-              {/* Navigation Links with Multi-color rhythm */}
-              <div className="px-6 sm:px-9 py-6 flex flex-col gap-1 relative z-10">
-                {navItems.map((item, idx) => (
-                  <motion.a
-                    key={item.label}
-                    href={item.href}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.08 + idx * 0.05, duration: 0.35 }}
-                    onClick={() => setIsMenuOpen(false)}
-                    className="group flex items-center justify-between py-3 px-3.5 -mx-3.5 rounded-sm border-b border-white/5 hover:border-[#E0B9A0]/30 hover:bg-white/[0.03] transition-all duration-300 active:scale-[0.98]"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className={`font-mono text-[10px] font-semibold tracking-wider ${item.numberColor}`}>
-                        {item.number}
+                  {/* Drawer Header */}
+                  <div className="p-6 sm:p-7 flex items-center justify-between border-b border-white/10 relative z-10">
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src="/yanhal-emblem.svg" 
+                        alt="Yanhal Logo" 
+                        style={{ aspectRatio: "300 / 386" }}
+                        className="h-10 w-auto object-contain shrink-0 drop-shadow-[0_0_10px_rgba(224,185,160,0.3)]"
+                      />
+                      <span className="font-mono text-xs text-white/70 tracking-[0.25em] uppercase">
+                        Navigation Index
                       </span>
-                      
-                      {/* Architectural icon container */}
-                      <div className={`w-8 h-8 rounded-full border ${item.borderAccent} text-white/75 flex items-center justify-center transition-all duration-300`}>
-                        {item.icon}
-                      </div>
-
-                      <div className="flex flex-col">
-                        <ChrHover
-                          text={item.label}
-                          hoverColor="#E0B9A0"
-                          className="text-lg sm:text-xl font-display font-medium tracking-[0.14em] uppercase text-white"
-                        />
-                        <span className="text-[10px] text-white/40 font-sans tracking-wide">
-                          {item.tagline}
-                        </span>
-                      </div>
                     </div>
 
-                    <ArrowUpRightIcon className="w-4 h-4 text-white/20 group-hover:text-[#E0B9A0] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 stroke-[1.5]" />
-                  </motion.a>
-                ))}
-              </div>
-
-              {/* Drawer Footer & Quick Contact */}
-              <div className="p-6 sm:p-8 border-t border-white/10 bg-black/40 relative z-10 flex flex-col gap-4">
-                <a
-                  href="#estimator"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="btn-fill-hover w-full flex items-center justify-center gap-2.5 border border-[#E0B9A0]/50 bg-[#E0B9A0]/10 text-[#E0B9A0] before:bg-[#E0B9A0] hover:border-[#E0B9A0] hover:text-[#2D2926] font-mono font-bold text-xs uppercase tracking-[0.22em] py-3.5 px-5 rounded-full transition-colors duration-400 shadow-[0_0_15px_rgba(224,185,160,0.15)] active:scale-95"
-                >
-                  <span>Request an Estimate</span>
-                  <ArrowUpRightIcon className="w-3.5 h-3.5 stroke-[2]" />
-                </a>
-
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className="flex items-center gap-2 text-white/60 text-[11px] font-sans">
-                    <MapPinIcon className="w-3.5 h-3.5 text-[#E0B9A0] shrink-0 stroke-[1.5]" />
-                    <span className="truncate">South C, Nairobi</span>
+                    <button
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-1.5 text-white/60 hover:text-[#E0B9A0] transition-colors text-xs font-mono uppercase tracking-widest cursor-pointer group p-2"
+                      aria-label="Close navigation"
+                    >
+                      <span className="group-hover:translate-x-[-2px] transition-transform text-[11px]">ESC</span>
+                      <XMarkIcon className="w-4 h-4 text-[#E0B9A0] stroke-[2]" />
+                    </button>
                   </div>
-                  <div className="flex items-center gap-2 text-white/60 text-[11px] font-sans">
-                    <PhoneIcon className="w-3.5 h-3.5 text-[#E0B9A0] shrink-0 stroke-[1.5]" />
-                    <span className="truncate">+254 724 093 256</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between text-[9px] font-mono text-white/35 uppercase tracking-widest pt-2 border-t border-white/5">
-                  <span>Yanhal Holdings Ltd</span>
-                  <span className="text-[#E0B9A0]/70">&bull; 2026</span>
-                </div>
-              </div>
-            </motion.div>
-          </>
+                  {/* Navigation Links with Multi-color rhythm */}
+                  <div className="px-6 sm:px-9 py-6 flex flex-col gap-1 relative z-10">
+                    {navItems.map((item, idx) => (
+                      <motion.a
+                        key={item.label}
+                        href={item.href}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.08 + idx * 0.05, duration: 0.35 }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsMenuOpen(false);
+                          transitionManager.transitionTo({
+                            destination: item.href,
+                            label: `${item.number} · ${item.label.toUpperCase()}`,
+                          });
+                        }}
+                        className="group flex items-center justify-between py-3 px-3.5 -mx-3.5 rounded-sm border-b border-white/5 hover:border-[#E0B9A0]/30 hover:bg-white/[0.03] transition-all duration-300 active:scale-[0.98]"
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className={`font-mono text-[10px] font-semibold tracking-wider ${item.numberColor}`}>
+                            {item.number}
+                          </span>
+                          
+                          {/* Architectural icon container */}
+                          <div className={`w-8 h-8 rounded-full border ${item.borderAccent} text-white/75 flex items-center justify-center transition-all duration-300`}>
+                            {item.icon}
+                          </div>
+
+                          <div className="flex flex-col">
+                            <ChrHover
+                              text={item.label}
+                              hoverColor="#E0B9A0"
+                              className="text-lg sm:text-xl font-display font-medium tracking-[0.14em] uppercase text-white"
+                            />
+                            <span className="text-[10px] text-white/40 font-sans tracking-wide">
+                              {item.tagline}
+                            </span>
+                          </div>
+                        </div>
+
+                        <ArrowUpRightIcon className="w-4 h-4 text-white/20 group-hover:text-[#E0B9A0] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 stroke-[1.5]" />
+                      </motion.a>
+                    ))}
+                  </div>
+
+                  {/* Drawer Footer & Quick Contact */}
+                  <div className="p-6 sm:p-8 border-t border-white/10 bg-black/40 relative z-10 flex flex-col gap-4">
+                    <a
+                      href="#estimator"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsMenuOpen(false);
+                        transitionManager.transitionTo({
+                          destination: "#estimator",
+                          label: "PROJECT ESTIMATOR",
+                        });
+                      }}
+                      className="btn-fill-hover w-full flex items-center justify-center gap-2.5 border border-[#E0B9A0]/50 bg-[#E0B9A0]/10 text-[#E0B9A0] before:bg-[#E0B9A0] hover:border-[#E0B9A0] hover:text-[#2D2926] font-mono font-bold text-xs uppercase tracking-[0.22em] py-3.5 px-5 rounded-full transition-colors duration-400 shadow-[0_0_15px_rgba(224,185,160,0.15)] active:scale-95"
+                    >
+                      <span>Request an Estimate</span>
+                      <ArrowUpRightIcon className="w-3.5 h-3.5 stroke-[2]" />
+                    </a>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <a
+                        href="https://www.google.com/maps/search/?api=1&query=South+C,+Behind+Masjid+As+Salaam,+Nairobi,+Kenya"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsMenuOpen(false);
+                          transitionManager.transitionTo({
+                            destination: "https://www.google.com/maps/search/?api=1&query=South+C,+Behind+Masjid+As+Salaam,+Nairobi,+Kenya",
+                            label: "HEADQUARTERS · NAIROBI",
+                            isExternal: true,
+                          });
+                        }}
+                        className="flex items-center gap-2 text-white/60 hover:text-[#E0B9A0] transition-colors text-[11px] font-sans group cursor-pointer"
+                      >
+                        <MapPinIcon className="w-3.5 h-3.5 text-[#E0B9A0] shrink-0 stroke-[1.5] group-hover:scale-110 transition-transform" />
+                        <span className="truncate">South C, Nairobi</span>
+                      </a>
+                      <a
+                        href="tel:0724093256"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsMenuOpen(false);
+                          transitionManager.transitionTo({
+                            destination: "tel:0724093256",
+                            label: "DIRECT LINE · CALL",
+                            isExternal: true,
+                          });
+                        }}
+                        className="flex items-center gap-2 text-white/60 hover:text-[#E0B9A0] transition-colors text-[11px] font-sans group cursor-pointer"
+                      >
+                        <PhoneIcon className="w-3.5 h-3.5 text-[#E0B9A0] shrink-0 stroke-[1.5] group-hover:scale-110 transition-transform" />
+                        <span className="truncate">+254 724 093 256</span>
+                      </a>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[9px] font-mono text-white/35 uppercase tracking-widest pt-2 border-t border-white/5">
+                      <span>Yanhal Holdings Ltd</span>
+                      <span className="text-[#E0B9A0]/70">&bull; 2026</span>
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </nav>
   );
 }

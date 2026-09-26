@@ -1,5 +1,9 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
+import Navbar from "./Navbar";
+import SoundSticker from "./SoundSticker";
+import { audioManager } from "../lib/audioManager";
 import { gsap, useGSAP } from "../lib/gsap";
+import { transitionManager } from "../lib/transitionManager";
 import { 
   ArrowUpRightIcon, 
   ArrowRightIcon, 
@@ -16,6 +20,19 @@ export default function Hero({ startEntrance = true }: HeroProps) {
   const videoSrc = "/yanhal.mp4";
   const heroRef = useRef<HTMLDivElement>(null);
   const titleContainerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
+  useEffect(() => {
+    audioManager.registerVideo("hero", videoRef.current);
+    const unsub = audioManager.subscribe((playing) => {
+      setIsPlayingAudio(playing);
+    });
+    return () => {
+      audioManager.unregisterVideo("hero");
+      unsub();
+    };
+  }, []);
 
   useGSAP(
     () => {
@@ -23,9 +40,8 @@ export default function Hero({ startEntrance = true }: HeroProps) {
       gsap.set(
         [
           ".hero-eyebrow",
-          ".hero-char-c",
-          ".hero-ampersand",
-          ".hero-char-i",
+          ".hero-char-1",
+          ".hero-char-2",
           ".hero-description",
           ".hero-cta-btn",
           ".hero-metric-item",
@@ -47,9 +63,9 @@ export default function Hero({ startEntrance = true }: HeroProps) {
           { opacity: 1, y: 0, duration: 0.65, stagger: 0.08, clearProps: "all" }
         );
 
-        // Step 2: Aroclux Signature Letter Blur & Scale Reveal for "CONSTRUCTION & INTERIORS"
+        // Step 2: Signature Letter Blur & Scale Reveal for "YOUR VISION. BUILT DIFFERENT."
         tl.fromTo(
-          ".hero-char-c",
+          ".hero-char-1",
           {
             scale: 1.35,
             filter: "blur(25px)",
@@ -68,25 +84,7 @@ export default function Hero({ startEntrance = true }: HeroProps) {
           "-=0.3"
         )
           .fromTo(
-            ".hero-ampersand",
-            {
-              scale: 0.5,
-              filter: "blur(20px)",
-              opacity: 0,
-              y: 20,
-            },
-            {
-              scale: 1,
-              filter: "blur(0px)",
-              opacity: 1,
-              y: 0,
-              duration: 0.8,
-              ease: "expo.out",
-            },
-            "-=0.7"
-          )
-          .fromTo(
-            ".hero-char-i",
+            ".hero-char-2",
             {
               scale: 1.35,
               filter: "blur(25px)",
@@ -158,9 +156,8 @@ export default function Hero({ startEntrance = true }: HeroProps) {
         gsap.set(
           [
             ".hero-eyebrow",
-            ".hero-char-c",
-            ".hero-ampersand",
-            ".hero-char-i",
+            ".hero-char-1",
+            ".hero-char-2",
             ".hero-description",
             ".hero-cta-btn",
             ".hero-metric-item",
@@ -172,8 +169,8 @@ export default function Hero({ startEntrance = true }: HeroProps) {
     { dependencies: [startEntrance], scope: heroRef }
   );
 
-  const constructionChars = "CONSTRUCTION".split("");
-  const interiorsChars = "INTERIORS".split("");
+  const line1Words = ["YOUR", "VISION."];
+  const line2Words = ["BUILT", "DIFFERENT."];
 
   return (
     <section
@@ -181,9 +178,13 @@ export default function Hero({ startEntrance = true }: HeroProps) {
       id="home"
       className="section-brand-black relative w-full min-h-[100svh] flex flex-col justify-between overflow-hidden text-[#FAF8F5] pt-18 sm:pt-20 md:pt-24 origin-bottom will-change-transform bg-[#080809]"
     >
+      {/* Top Scoped Navigation Header */}
+      <Navbar />
+
       {/* Visual Foundation: Cinematic Video Background - Clearly & Vibrantly Visible */}
       <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden flex items-center justify-center">
         <video
+          ref={videoRef}
           src={videoSrc}
           autoPlay
           loop
@@ -225,64 +226,59 @@ export default function Hero({ startEntrance = true }: HeroProps) {
       {/* Main Centered Hero Composition */}
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 my-auto py-2 sm:py-4 md:py-6 flex flex-col items-center justify-center text-center">
         
-        {/* Centered Brand Capsule with Aroclux Peach Accent */}
-        <div className="hero-eyebrow inline-flex items-center gap-2 px-3 sm:px-3.5 py-1 rounded-full bg-[#2D2926]/70 backdrop-blur-md border border-[#E0B9A0]/40 mb-2 sm:mb-3 md:mb-4 shadow-[0_0_15px_rgba(224,185,160,0.15)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#E0B9A0] animate-pulse shadow-[0_0_6px_#E0B9A0]" />
-          <span className="font-mono text-[8.5px] sm:text-[10px] tracking-[0.22em] sm:tracking-[0.26em] uppercase font-semibold text-[#FAF8F5]">
-            Yanhal Holdings &bull; Nairobi, Kenya
-          </span>
-        </div>
-
         {/* Monumental Choreographed Headline with Aroclux Split Character Animation */}
-        <div 
+        <h1 
           ref={titleContainerRef}
           className="hero-title-container relative flex flex-col items-center justify-center w-full max-w-5xl px-2 will-change-transform"
         >
-          {/* First Line: CONSTRUCTION */}
-          <div className="overflow-hidden w-full py-0.5 sm:py-1">
-            <h1 
-              className="text-[clamp(1.5rem,6.4vw,5.5rem)] font-display font-black text-[#FAF8F5]/90 tracking-[0.08em] sm:tracking-[0.16em] uppercase leading-[0.98] select-none text-center drop-shadow-[0_2px_14px_rgba(0,0,0,0.65)] m-0 flex justify-center flex-wrap"
+          {/* First Line: YOUR VISION. */}
+          <span className="overflow-hidden w-full py-0.5 sm:py-1 block">
+            <span 
+              className="text-[clamp(1.5rem,6.2vw,5.5rem)] font-display font-black text-[#FAF8F5]/90 tracking-[0.06em] sm:tracking-[0.14em] uppercase leading-[1.02] select-none text-center drop-shadow-[0_2px_14px_rgba(0,0,0,0.65)] m-0 flex justify-center flex-wrap gap-x-2.5 sm:gap-x-5"
               style={{
                 WebkitTextStroke: "1px rgba(224, 185, 160, 0.35)"
               }}
             >
-              {constructionChars.map((char, index) => (
-                <span key={index} className="title-char-mask">
-                  <span className="title-char-inner hero-char-c">
-                    {char}
-                  </span>
+              {line1Words.map((word, wIdx) => (
+                <span key={wIdx} className="inline-flex whitespace-nowrap">
+                  {word.split("").map((char, cIdx) => (
+                    <span key={cIdx} className="title-char-mask">
+                      <span className="title-char-inner hero-char-1">
+                        {char}
+                      </span>
+                    </span>
+                  ))}
                 </span>
               ))}
-            </h1>
-          </div>
+            </span>
+          </span>
 
-          {/* Second Line: & INTERIORS */}
-          <div className="overflow-hidden w-full mt-1 sm:mt-2 py-0.5 sm:py-1">
-            <h2 
-              className="text-[clamp(1.25rem,5.1vw,4.3rem)] font-display font-extrabold text-[#FAF8F5]/90 tracking-[0.1em] sm:tracking-[0.18em] uppercase leading-[1.02] select-none text-center flex items-center justify-center gap-1.5 sm:gap-3 drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] m-0"
+          {/* Second Line: BUILT DIFFERENT. */}
+          <span className="overflow-hidden w-full mt-1 sm:mt-2.5 py-0.5 sm:py-1 block">
+            <span 
+              className="text-[clamp(1.35rem,5.4vw,4.7rem)] font-display font-black text-[#FAF8F5]/90 tracking-[0.06em] sm:tracking-[0.14em] uppercase leading-[1.02] select-none text-center flex justify-center flex-wrap gap-x-2.5 sm:gap-x-5 drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] m-0"
               style={{
                 WebkitTextStroke: "1px rgba(224, 185, 160, 0.3)"
               }}
             >
-              <span className="hero-ampersand text-[#E0B9A0] font-sans font-normal text-[clamp(1.1rem,3.8vw,3rem)] drop-shadow-[0_0_12px_rgba(224,185,160,0.5)] mr-1 sm:mr-2">
-                &amp;
-              </span>
-              <span className="flex justify-center">
-                {interiorsChars.map((char, index) => (
-                  <span key={index} className="title-char-mask">
-                    <span className="title-char-inner hero-char-i">
-                      {char}
+              {line2Words.map((word, wIdx) => (
+                <span key={wIdx} className="inline-flex whitespace-nowrap">
+                  {word.split("").map((char, cIdx) => (
+                    <span key={cIdx} className="title-char-mask">
+                      <span className="title-char-inner hero-char-2">
+                        {char}
+                      </span>
                     </span>
-                  </span>
-                ))}
-              </span>
-            </h2>
-          </div>
-        </div>
+                  ))}
+                </span>
+              ))}
+            </span>
+          </span>
+        </h1>
 
         {/* Centered Concise Supporting Copy */}
-        <p className="hero-description text-stone-200 text-[clamp(0.78rem,1.15vw,1.05rem)] font-sans font-light leading-relaxed max-w-xl mx-auto mt-2 sm:mt-4 md:mt-5 mb-4 sm:mb-6 md:mb-7 px-2 drop-shadow-[0_1px_6px_rgba(0,0,0,0.7)]">
-          Turnkey architectural construction, commercial developments, and bespoke interior fitouts crafted across Nairobi and East Africa with uncompromising precision.
+        <p className="hero-description text-stone-200 text-[clamp(0.82rem,1.18vw,1.08rem)] font-sans font-light leading-relaxed max-w-2xl mx-auto mt-3 sm:mt-4 md:mt-5 mb-5 sm:mb-6 md:mb-7 px-2 drop-shadow-[0_1px_6px_rgba(0,0,0,0.7)]">
+          From bold new builds to spaces completely reimagined, we turn ambitious ideas into places made to stand out, built with purpose, and finished down to the last detail.
         </p>
 
         {/* Refined Responsive Hero CTA Buttons */}
@@ -290,9 +286,16 @@ export default function Hero({ startEntrance = true }: HeroProps) {
           {/* Primary CTA: Aroclux Warm Sandstone Peach Fill */}
           <a
             href="#estimator"
+            onClick={(e) => {
+              e.preventDefault();
+              transitionManager.transitionTo({
+                destination: "#estimator",
+                label: "PROJECT ESTIMATOR",
+              });
+            }}
             className="hero-cta-btn btn-fill-hover group w-auto inline-flex items-center justify-center gap-2.5 sm:gap-3 px-6 sm:px-8 py-2.5 sm:py-3.5 min-h-[44px] sm:min-h-[48px] rounded-full border border-[#E0B9A0] bg-[#E0B9A0] text-[#2D2926] hover:bg-[#FAF8F5] hover:border-[#FAF8F5] text-[10px] sm:text-[11px] font-mono font-bold tracking-[0.16em] sm:tracking-[0.22em] uppercase shadow-[0_4px_20px_rgba(0,0,0,0.4),0_0_20px_rgba(224,185,160,0.3)] active:scale-[0.97] transition-all duration-300 shrink-0"
           >
-            <span>Get a Free Estimate</span>
+            <span>Start Your Project</span>
             <div className="w-5 h-5 rounded-full bg-[#2D2926]/15 group-hover:bg-[#2D2926]/25 flex items-center justify-center transition-colors shrink-0">
               <ArrowUpRightIcon className="w-3 h-3 text-[#2D2926] stroke-[2.5] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
             </div>
@@ -301,9 +304,16 @@ export default function Hero({ startEntrance = true }: HeroProps) {
           {/* Secondary CTA: Architectural Frosted Glass with Warm Slate Accent */}
           <a
             href="#portfolio"
+            onClick={(e) => {
+              e.preventDefault();
+              transitionManager.transitionTo({
+                destination: "#portfolio",
+                label: "03 · SELECTED WORKS",
+              });
+            }}
             className="hero-cta-btn btn-fill-hover group w-auto inline-flex items-center justify-center gap-2.5 sm:gap-3 px-6 sm:px-8 py-2.5 sm:py-3.5 min-h-[44px] sm:min-h-[48px] rounded-full border border-white/25 bg-[#181514]/60 backdrop-blur-md text-[#FAF8F5] before:bg-[#AE917E] hover:border-[#AE917E] hover:text-white text-[10px] sm:text-[11px] font-mono font-bold tracking-[0.16em] sm:tracking-[0.22em] uppercase shadow-[0_4px_20px_rgba(0,0,0,0.4)] active:scale-[0.97] transition-all duration-300 shrink-0"
           >
-            <span>View Our Work</span>
+            <span>Check Us Out</span>
             <ArrowRightIcon className="w-3.5 h-3.5 text-[#E0B9A0] group-hover:text-white stroke-[2] group-hover:translate-x-1 transition-transform duration-300" />
           </a>
         </div>
@@ -358,6 +368,16 @@ export default function Hero({ startEntrance = true }: HeroProps) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Signature Tactile Organic Sound Sticker (Visible from Reference Link) */}
+      <div className="absolute right-4 sm:right-8 md:right-10 bottom-24 sm:bottom-28 z-30 pointer-events-auto">
+        <SoundSticker
+          isPlayingAudio={isPlayingAudio}
+          onToggle={() => audioManager.toggle()}
+          size="default"
+          showLabel={true}
+        />
       </div>
 
     </section>

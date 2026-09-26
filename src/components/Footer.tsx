@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { transitionManager } from "../lib/transitionManager";
 
 export default function Footer() {
   return (
@@ -36,7 +37,17 @@ export default function Footer() {
             <ul className="space-y-3 sm:space-y-4 text-sm">
               {["Construction Services", "Interior Design", "Renovation & Remodeling", "Commercial Projects", "Structural Engineering"].map((service, idx) => (
                 <li key={idx}>
-                  <a className="text-stone-300 hover:text-[#E0B9A0] transition-colors flex items-center gap-2 group py-1" href="#services">
+                  <a 
+                    className="text-stone-300 hover:text-[#E0B9A0] transition-colors flex items-center gap-2 group py-1 cursor-pointer" 
+                    href="#services"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      transitionManager.transitionTo({
+                        destination: "#services",
+                        label: `02 · ${service.toUpperCase()}`,
+                      });
+                    }}
+                  >
                     <span className="w-0 group-hover:w-2 h-[1px] bg-[#E0B9A0] transition-all"></span>
                     {service}
                   </a>
@@ -48,9 +59,27 @@ export default function Footer() {
           <div className="lg:col-span-2">
             <h4 className="text-white font-bold mb-6 sm:mb-8 uppercase tracking-widest text-[10px] sm:text-xs border-b border-white/10 pb-2 inline-block">Navigation</h4>
             <ul className="space-y-3 sm:space-y-4 text-sm">
-              {["About Us", "Our Projects", "Process", "Estimator", "Contact"].map((nav, idx) => (
+              {[
+                { name: "About Us", href: "#about", label: "04 · ABOUT US" },
+                { name: "Our Projects", href: "#portfolio", label: "03 · SELECTED WORKS" },
+                { name: "Process", href: "#process", label: "BLUEPRINT PROCESS" },
+                { name: "Estimator", href: "#estimator", label: "PROJECT ESTIMATOR" },
+                { name: "Contact", href: "#contact", label: "05 · CONSULTATIONS" }
+              ].map((nav, idx) => (
                 <li key={idx}>
-                  <a className="text-stone-300 hover:text-[#E0B9A0] transition-colors block py-1" href={`#${nav.toLowerCase().replace(' ', '')}`}>{nav}</a>
+                  <a 
+                    className="text-stone-300 hover:text-[#E0B9A0] transition-colors block py-1 cursor-pointer" 
+                    href={nav.href}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      transitionManager.transitionTo({
+                        destination: nav.href,
+                        label: nav.label,
+                      });
+                    }}
+                  >
+                    {nav.name}
+                  </a>
                 </li>
               ))}
             </ul>
@@ -64,6 +93,14 @@ export default function Footer() {
                 href="https://www.google.com/maps/search/?api=1&query=South+C,+Behind+Masjid+As+Salaam,+Nairobi,+Kenya" 
                 target="_blank" 
                 rel="noopener noreferrer" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  transitionManager.transitionTo({
+                    destination: "https://www.google.com/maps/search/?api=1&query=South+C,+Behind+Masjid+As+Salaam,+Nairobi,+Kenya",
+                    label: "HEADQUARTERS · NAIROBI",
+                    isExternal: true,
+                  });
+                }}
                 className="w-11 h-11 sm:w-12 sm:h-12 border border-white/20 hover:border-[#E0B9A0] bg-white/[0.05] hover:bg-[#E0B9A0]/10 rounded-lg flex items-center justify-center text-white hover:text-[#E0B9A0] transition-all duration-300 shadow-md group cursor-pointer shrink-0" 
                 aria-label="Headquarters"
                 title="South C, Behind Masjid As Salaam, Nairobi"
@@ -77,6 +114,14 @@ export default function Footer() {
               {/* Phone Number */}
               <a 
                 href="tel:0724093256" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  transitionManager.transitionTo({
+                    destination: "tel:0724093256",
+                    label: "DIRECT LINE · CALL",
+                    isExternal: true,
+                  });
+                }}
                 className="w-11 h-11 sm:w-12 sm:h-12 border border-white/20 hover:border-[#E0B9A0] bg-white/[0.05] hover:bg-[#E0B9A0]/10 rounded-lg flex items-center justify-center text-white hover:text-[#E0B9A0] transition-all duration-300 shadow-md group cursor-pointer shrink-0" 
                 aria-label="Phone Number"
                 title="0724093256"
@@ -91,6 +136,14 @@ export default function Footer() {
                 href="https://wa.me/254740895374" 
                 target="_blank" 
                 rel="noopener noreferrer" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  transitionManager.transitionTo({
+                    destination: "https://wa.me/254740895374",
+                    label: "CONNECTING · WHATSAPP",
+                    isExternal: true,
+                  });
+                }}
                 className="w-11 h-11 sm:w-12 sm:h-12 border border-white/20 hover:border-[#E0B9A0] bg-white/[0.05] hover:bg-[#E0B9A0]/10 rounded-lg flex items-center justify-center text-white hover:text-[#E0B9A0] transition-all duration-300 shadow-md group cursor-pointer shrink-0" 
                 aria-label="WhatsApp & Secondary Line"
                 title="+254 740 895374"
@@ -104,6 +157,14 @@ export default function Footer() {
               {/* Email Inquiries */}
               <a 
                 href="mailto:Yanhalholdingslimited@gmail.com" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  transitionManager.transitionTo({
+                    destination: "mailto:Yanhalholdingslimited@gmail.com",
+                    label: "INQUIRY · EMAIL",
+                    isExternal: true,
+                  });
+                }}
                 className="w-11 h-11 sm:w-12 sm:h-12 border border-white/20 hover:border-[#E0B9A0] bg-white/[0.05] hover:bg-[#E0B9A0]/10 rounded-lg flex items-center justify-center text-white hover:text-[#E0B9A0] transition-all duration-300 shadow-md group cursor-pointer shrink-0" 
                 aria-label="Email Inquiries"
                 title="Yanhalholdingslimited@gmail.com"
@@ -119,6 +180,14 @@ export default function Footer() {
                 href="https://www.tiktok.com/@yanhal.holdings.lt" 
                 target="_blank" 
                 rel="noopener noreferrer" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  transitionManager.transitionTo({
+                    destination: "https://www.tiktok.com/@yanhal.holdings.lt",
+                    label: "SOCIAL · TIKTOK",
+                    isExternal: true,
+                  });
+                }}
                 className="w-11 h-11 sm:w-12 sm:h-12 border border-white/20 hover:border-[#E0B9A0] bg-white/[0.05] hover:bg-[#E0B9A0]/10 rounded-lg flex items-center justify-center text-white hover:text-[#E0B9A0] transition-all duration-300 shadow-md group cursor-pointer shrink-0" 
                 aria-label="TikTok"
                 title="TikTok"
@@ -133,6 +202,14 @@ export default function Footer() {
                 href="https://www.instagram.com/yanhalholdings/" 
                 target="_blank" 
                 rel="noopener noreferrer" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  transitionManager.transitionTo({
+                    destination: "https://www.instagram.com/yanhalholdings/",
+                    label: "SOCIAL · INSTAGRAM",
+                    isExternal: true,
+                  });
+                }}
                 className="w-11 h-11 sm:w-12 sm:h-12 border border-white/20 hover:border-[#E0B9A0] bg-white/[0.05] hover:bg-[#E0B9A0]/10 rounded-lg flex items-center justify-center text-white hover:text-[#E0B9A0] transition-all duration-300 shadow-md group cursor-pointer shrink-0" 
                 aria-label="Instagram"
                 title="Instagram"

@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef, useEffect } from "react";
-import RestorationSlider from "./RestorationSlider";
 
 
 interface Project {
@@ -112,7 +111,6 @@ export default function Portfolio() {
   ];
 
   return (
-    <>
     <section 
       id="portfolio" 
       className="py-18 sm:py-24 lg:py-28 overflow-hidden bg-[#2D2926] text-[#FAF8F5] relative"
@@ -314,8 +312,5 @@ export default function Portfolio() {
       </AnimatePresence>
 
     </section>
-    {/* Restoration slider: full-width, outside the portfolio section */}
-    <RestorationSlider />
-    </>
   );
 }

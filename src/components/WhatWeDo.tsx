@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { gsap, useGSAP, ScrollTrigger } from "../lib/gsap";
+import { transitionManager } from "../lib/transitionManager";
 import {
   BuildingOffice2Icon,
   SparklesIcon,
@@ -845,7 +846,14 @@ export default function WhatWeDo() {
                           <div className="flex items-center gap-2">
                             <a
                               href="#estimator"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                transitionManager.transitionTo({
+                                  destination: "#estimator",
+                                  label: "PROJECT ESTIMATOR",
+                                });
+                              }}
                               className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#E0B9A0] hover:bg-[#FAF8F5] text-[#2D2926] font-mono font-bold py-2 sm:py-2.5 px-3 text-[9px] sm:text-[10px] uppercase tracking-wider rounded-lg transition-colors shadow-md active:scale-95 cursor-pointer text-center"
                             >
                               <span className="truncate">{item.ctaText}</span>
