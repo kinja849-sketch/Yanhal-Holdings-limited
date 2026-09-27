@@ -276,7 +276,7 @@ export default function App() {
         <div id="panel-leadership" className="section-panel panel section-panel-elevated relative z-40 bg-[#2D2926]">
           <Leadership />
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
+        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none bg-[#2D2926]" aria-hidden="true" />
 
         {/* 05 & 06 Connected Span with Continuous Fluid Drawing Line Loop */}
         <div className="relative w-full">
