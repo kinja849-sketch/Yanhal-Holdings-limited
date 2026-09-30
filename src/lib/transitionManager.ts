@@ -8,77 +8,78 @@ export type TransitionTheme = {
   name: string;
 };
 
-// Destination-specific color palettes using Yanhal's authorized design tokens
+// Destination-specific color palettes using vibrant card colors from the reference palette:
+// Strong Orange: #EA874C | Medium Gray: #C2C2C2 | Bright Purple: #A643F5 | Luminous Yellow: #EEFE81 | Clear Blue: #6AC4F9
 export const YANHAL_TRANSITION_THEMES: Record<string, TransitionTheme> = {
   home: {
-    primary: "#080809",
-    secondary: "#181514",
-    accent: "#E0B9A0",
-    text: "#FAF8F5",
-    name: "Obsidian Noir",
+    primary: "#A643F5",
+    secondary: "#6AC4F9",
+    accent: "#EEFE81",
+    text: "#FFFFFF",
+    name: "Vibrant Electric Purple",
   },
   services: {
-    primary: "#E0B9A0",
-    secondary: "#AE917E",
-    accent: "#2D2926",
-    text: "#2D2926",
-    name: "Sandstone Peach",
+    primary: "#EA874C",
+    secondary: "#EEFE81",
+    accent: "#A643F5",
+    text: "#080809",
+    name: "Vibrant Solar Orange",
   },
   portfolio: {
-    primary: "#AE917E",
-    secondary: "#867163",
-    accent: "#FAF8F5",
-    text: "#FAF8F5",
-    name: "Terracotta Slate",
+    primary: "#6AC4F9",
+    secondary: "#A643F5",
+    accent: "#EEFE81",
+    text: "#080809",
+    name: "Vibrant Sky Blue",
   },
   about: {
-    primary: "#2D2926",
-    secondary: "#181514",
-    accent: "#E0B9A0",
-    text: "#FAF8F5",
-    name: "Espresso Graphite",
+    primary: "#A643F5",
+    secondary: "#EA874C",
+    accent: "#C2C2C2",
+    text: "#FFFFFF",
+    name: "Vibrant Royal Purple",
   },
   leadership: {
-    primary: "#2D2926",
-    secondary: "#221D1A",
-    accent: "#AE917E",
-    text: "#FAF8F5",
-    name: "Executive Bronze",
+    primary: "#C2C2C2",
+    secondary: "#A643F5",
+    accent: "#6AC4F9",
+    text: "#080809",
+    name: "Vibrant Studio Gray",
   },
   process: {
-    primary: "#221D1A",
-    secondary: "#080809",
-    accent: "#E0B9A0",
-    text: "#FAF8F5",
-    name: "Blueprint Charcoal",
+    primary: "#EEFE81",
+    secondary: "#6AC4F9",
+    accent: "#EA874C",
+    text: "#080809",
+    name: "Vibrant Neon Yellow",
   },
   estimator: {
-    primary: "#E0B9A0",
-    secondary: "#FAF8F5",
-    accent: "#080809",
+    primary: "#EA874C",
+    secondary: "#A643F5",
+    accent: "#6AC4F9",
     text: "#080809",
-    name: "Warm Sandstone",
+    name: "Vibrant Kinetic Orange",
   },
   contact: {
-    primary: "#2D2926",
-    secondary: "#AE917E",
-    accent: "#E0B9A0",
-    text: "#FAF8F5",
-    name: "Architectural Noir",
+    primary: "#6AC4F9",
+    secondary: "#EEFE81",
+    accent: "#EA874C",
+    text: "#080809",
+    name: "Vibrant Electric Blue",
   },
   social: {
-    primary: "#867163",
-    secondary: "#AE917E",
-    accent: "#FAF8F5",
-    text: "#FAF8F5",
-    name: "Terracotta Bronze",
+    primary: "#EEFE81",
+    secondary: "#A643F5",
+    accent: "#6AC4F9",
+    text: "#080809",
+    name: "Vibrant High-Voltage Yellow",
   },
   default: {
-    primary: "#080809",
-    secondary: "#2D2926",
-    accent: "#E0B9A0",
-    text: "#FAF8F5",
-    name: "Yanhal Brand",
+    primary: "#EA874C",
+    secondary: "#A643F5",
+    accent: "#EEFE81",
+    text: "#080809",
+    name: "Vibrant Spectrum",
   },
 };
 
@@ -175,11 +176,11 @@ class TransitionManager {
     const theme = opts.theme || this.resolveTheme(destination, isExternal);
     const label = opts.label || this.resolveLabel(destination, isExternal);
 
-    // Fail-safe watchdog timer: unlock after 2000ms if anything interrupts
+    // Fail-safe watchdog timer: unlock after 3600ms if anything interrupts (full transition is 2.3s)
     if (this.watchdogTimer) clearTimeout(this.watchdogTimer);
     this.watchdogTimer = setTimeout(() => {
       this.forceUnlock();
-    }, 2200);
+    }, 3600);
 
     const payload: TransitionPayload = {
       destination,

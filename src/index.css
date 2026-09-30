@@ -705,3 +705,111 @@ button.chr-hover {
   }
 }
 
+/* ========================================================================= */
+/* CINEMATIC PAGE TRANSITION (Mirrored exactly from phyusinyadanarthein.com) */
+/* ========================================================================= */
+:root {
+  --color-transition-blue: #82a0ff;
+  --color-transition-orange: #f5693c;
+  --color-transition-green: #2d7864;
+  --color-transition-pink: #f0befa;
+  --color-transition-maroonred: #a0325a;
+  --color-transition-dark: #000000;
+  --color-transition-light: #f0ebe6;
+}
+
+.transition-container {
+  z-index: 999999;
+  position: fixed;
+  inset: 0%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.transition-screen {
+  background-color: var(--color-transition-dark);
+  pointer-events: auto;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0%;
+  left: 0%;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.transition-scribble {
+  color: var(--color-transition-blue);
+  width: 120%;
+  height: 120%;
+  display: block;
+  position: absolute;
+  top: -5.5%;
+  left: -12%;
+}
+
+@media screen and (max-width: 991px) {
+  .transition-scribble {
+    width: 140%;
+    left: -22%;
+  }
+}
+
+.transition-logo {
+  pointer-events: auto;
+  color: var(--color-transition-light);
+  justify-content: center;
+  align-items: center;
+  width: 16em !important;
+  max-width: 85vw !important;
+  height: 3.5em !important;
+  display: flex;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.transition-logo__svg {
+  animation: 0.3s steps(2) 0s infinite normal none running wiggle;
+}
+
+@keyframes wiggle {
+  0% {
+    transform: rotate(2deg);
+  }
+  100% {
+    transform: rotate(-2deg);
+  }
+}
+
+/* Theme color mappings from phyusinyadanarthein.com */
+.transition-container[data-transition-theme="blue"] .transition-scribble {
+  color: var(--color-transition-blue);
+}
+.transition-container[data-transition-theme="orange"] .transition-scribble {
+  color: var(--color-transition-orange);
+}
+.transition-container[data-transition-theme="green"] .transition-scribble {
+  color: var(--color-transition-green);
+}
+.transition-container[data-transition-theme="pink"] .transition-scribble {
+  color: var(--color-transition-pink);
+}
+.transition-container[data-transition-theme="maroonred"] .transition-scribble {
+  color: var(--color-transition-maroonred);
+}
+
+.transition-container[data-transition-theme="orange"] .transition-logo,
+.transition-container[data-transition-theme="maroonred"] .transition-logo,
+.transition-container[data-transition-theme="green"] .transition-logo {
+  color: var(--color-transition-light);
+}
+
+.transition-container[data-transition-theme="blue"] .transition-logo,
+.transition-container[data-transition-theme="pink"] .transition-logo {
+  color: var(--color-transition-dark);
+}
+
