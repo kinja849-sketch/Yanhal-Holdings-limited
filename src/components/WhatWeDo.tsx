@@ -57,7 +57,7 @@ const capabilities: Capability[] = [
       { label: "Coverage", value: "Nairobi & Metro" },
     ],
     image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuA4WjWo8QINsAcQrYNWldg-_yGtyRXcaY9GxuqfxqqJUNjJKGVKJK9k6BzdvAdOzlrFc0qGytCm7nFfkPVpw2UlXE0TD5jpBgQTsdfZnze6HPKR-F_LIJU5GB6vFn6scCUpiJeERFbPfixe-j6ROpmSAdI1CdlLIAY80wEX0mhEBON0ym3N7POBq2yiTBXEz4MzKsTFVLNow8pdkmwATpc0EgppXhpFChCjd0QtqA3nJNn-BlEaoP5KLBdor2BL9MWporxSU7Evb2s",
+      "https://res.cloudinary.com/koc0fyuc/image/upload/v1790775929/780c1a5e-d3dc-486b-8f58-e2efcc314b95_hddabv.png",
     icon: BuildingOffice2Icon,
     colorName: "sandstone-gold",
     colorClass: {
@@ -91,7 +91,7 @@ const capabilities: Capability[] = [
       { label: "Materials", value: "Premium Grade" },
     ],
     image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDJgMhD7gZWYj9nwCwAFa-s_MoIKJaAnmbe-zn3uBPh48eBIKvCEch2bMTbhJUPuyiGd3xOAaHMgOxV4wAuxxpzfEQgYQp2nVdmKxWuFOxOHzxiTBU_8aHJbCdrz2gLUnOtlqhEf_fW64XTmQM517tep7HZP8zDhABYK0kkq81z7izN8oogn9qs2dgWo0GQGK2n3fEpTpc3UT72jM5V1f_qlOZDg4xVYqazE9EzCsqqR_8NJDkTNURHO3-hXixe5EteZZE-VjGkCkk",
+      "https://res.cloudinary.com/koc0fyuc/image/upload/v1790775956/ChatGPT_Image_Sep_30_2026_08_39_38_PM_sdzsil.png",
     icon: SparklesIcon,
     colorName: "warm-ivory",
     colorClass: {
@@ -125,7 +125,7 @@ const capabilities: Capability[] = [
       { label: "Execution", value: "Phased" },
     ],
     image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBU5rrJrv0XSO0txUIddgRLI4hOVJqCIxPZDcr32giPrLr3EoRik0_-YfPdnc_KtgpzJJm-_45B588EmCsQfjwNwaKxT4PysG9Of6wAyO-byQ3Xn48JvYeevNUaKaK3FY8K-kEftEFLykf5-RLZ0uvao4s9GOUtehJnukMTc-hy-VsI2ob7M114D4l_LsJ5zllEmHvTse1DkBNqRiWe7j7eK-Wj_K6o0gADqR25ghBDDp_8_HZNwJmgTJt0f7a3Rl_AgfdIFSfp3OE",
+      "https://res.cloudinary.com/koc0fyuc/image/upload/v1790775956/ChatGPT_Image_Sep_30_2026_08_39_59_PM_qiqyqg.png",
     icon: ArrowPathIcon,
     colorName: "sandstone-gold",
     colorClass: {
@@ -159,7 +159,7 @@ const capabilities: Capability[] = [
       { label: "Turnaround", value: "Rapid" },
     ],
     image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBEaeFV-7KNBpps2-ELWn3KUvW7uFq7zlkDp2UR0JZ1fotpCQU5pnDn51g6xWJCASKsABXVdbItcamjtlpJaMebg9sd8IEPSsrfP92GrTOBvZOR553mIksZmLejdjmfFWkpqU6xwePrx5INhavcV6sWU1daQ_R4vURLD7D4hEfT2TNCbkKL5yXQ8JxRWqKw8jlo7IUVVUllNt8CC-aZDdbIVpKxAyF3AunTl4FrSrzw8Mu0X7KxdjKAejvlprI84Sh69_HrPajLNS8",
+      "https://res.cloudinary.com/koc0fyuc/image/upload/v1790775929/7a137120-6cc6-4752-899f-90ed7a66efb8_alws1r.png",
     icon: BuildingStorefrontIcon,
     colorName: "ochre-bronze",
     colorClass: {
