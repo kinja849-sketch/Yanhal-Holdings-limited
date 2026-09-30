@@ -1,13 +1,17 @@
 /**
- * Yanhal Holdings Ltd — High-Fidelity Human TTS Player
- * Uses OpenAI Studio TTS (/api/assistant/tts) with graceful Web Speech Synthesis fallback.
- * Strictly prevents concurrent audio playback, voice switching, and ghost audio leaks.
+ * Yanhal Holdings Ltd — High-Fidelity Human Studio TTS Player
+ * Uses OpenAI Studio TTS (/api/assistant/tts) as the mandatory voice pipeline.
+ * Strictly avoids robotic browser SpeechSynthesis on mobile.
+ * Includes audio caching, connection retry, and session isolation.
  */
 
 let activeAudio: HTMLAudioElement | null = null;
 let activeObjectUrl: string | null = null;
 let audioContext: AudioContext | null = null;
 let currentSessionId = 0;
+
+// Client-side cache for instantaneous playback of synthesized voice turns
+const clientAudioCache = new Map<string, string>();
 
 /**
  * Unlock Web Audio & HTML5 Audio on user gesture (e.g. entering Voice Mode).
@@ -29,8 +33,8 @@ export function unlockAudio() {
 }
 
 /**
- * Stop any ongoing audio playback or speech synthesis immediately.
- * Invalidates any in-flight speech requests so no sound plays after exiting.
+ * Stop any ongoing audio playback immediately.
+ * Invalidates any in-flight speech requests so no sound leaks after turn end.
  */
 export function stopAudio() {
   currentSessionId++; // Invalidate all pending and inflight requests
@@ -65,7 +69,41 @@ export interface PlaySpeechOptions {
 }
 
 /**
- * Play text as natural human speech with strictly guarded event lifecycle.
+ * Helper to fetch Studio TTS with automatic 1-shot retry on transient network errors.
+ */
+async function fetchStudioAudio(cleanText: string, voice: string, sessionId: number): Promise<Blob | null> {
+  const doFetch = async () => {
+    const res = await fetch("/api/assistant/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: cleanText, voice }),
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) throw new Error(`TTS status ${res.status}`);
+    const blob = await res.blob();
+    if (!blob || blob.size < 200) throw new Error("Empty audio blob");
+    return blob;
+  };
+
+  try {
+    return await doFetch();
+  } catch (err) {
+    if (sessionId !== currentSessionId) return null;
+    console.warn(`[VoiceTurn #${sessionId}] First studio TTS attempt failed, retrying in 350ms...`, err);
+    await new Promise(r => setTimeout(r, 350));
+    if (sessionId !== currentSessionId) return null;
+    try {
+      return await doFetch();
+    } catch (retryErr) {
+      console.error(`[VoiceTurn #${sessionId}] Studio TTS retry failed:`, retryErr);
+      return null;
+    }
+  }
+}
+
+/**
+ * Play text as natural human studio speech.
+ * Mandatory studio path: does NOT fall back to flat robotic browser SpeechSynthesis.
  */
 export async function playHumanSpeech({
   text,
@@ -75,7 +113,6 @@ export async function playHumanSpeech({
   onEnd,
   onError,
 }: PlaySpeechOptions) {
-  // 1. Invalidate and cancel all previous audio
   stopAudio();
   const sessionId = currentSessionId;
 
@@ -89,9 +126,44 @@ export async function playHumanSpeech({
     return;
   }
 
-  console.log(`[VoiceTurn #${sessionId}] Requesting studio speech playback...`);
+  const cacheKey = `${voice}_${cleanText.toLowerCase()}`;
 
-  // If audioBase64 is directly supplied, play immediately!
+  // 1. Check in-memory audio cache for instantaneous replay
+  if (clientAudioCache.has(cacheKey)) {
+    const cachedUrl = clientAudioCache.get(cacheKey)!;
+    try {
+      const audio = new Audio(cachedUrl);
+      activeAudio = audio;
+
+      audio.onplay = () => {
+        if (sessionId !== currentSessionId) {
+          audio.pause();
+          return;
+        }
+        console.log(`[VoiceTurn #${sessionId}] Cached studio audio playback started`);
+        if (onStart) onStart();
+      };
+
+      audio.onended = () => {
+        if (sessionId !== currentSessionId) return;
+        console.log(`[VoiceTurn #${sessionId}] Cached studio audio playback ended`);
+        stopAudio();
+        if (onEnd) onEnd();
+      };
+
+      audio.onerror = (e) => {
+        if (sessionId !== currentSessionId) return;
+        console.warn(`[VoiceTurn #${sessionId}] Cached audio error, refetching:`, e);
+      };
+
+      await audio.play();
+      return;
+    } catch (e) {
+      console.warn(`[VoiceTurn #${sessionId}] Error playing cached audio:`, e);
+    }
+  }
+
+  // 2. Play direct audioBase64 if provided from inline generation
   if (audioBase64) {
     try {
       const audioUrl = `data:audio/mpeg;base64,${audioBase64}`;
@@ -103,168 +175,88 @@ export async function playHumanSpeech({
           audio.pause();
           return;
         }
-        console.log(`[VoiceTurn #${sessionId}] Instant Base64 audio playback started`);
+        console.log(`[VoiceTurn #${sessionId}] Instant Base64 studio audio playback started`);
         if (onStart) onStart();
       };
 
       audio.onended = () => {
         if (sessionId !== currentSessionId) return;
-        console.log(`[VoiceTurn #${sessionId}] Audio playback ended`);
+        console.log(`[VoiceTurn #${sessionId}] Studio audio playback ended`);
         stopAudio();
         if (onEnd) onEnd();
       };
 
       audio.onerror = (e) => {
         if (sessionId !== currentSessionId) return;
-        console.warn(`[VoiceTurn #${sessionId}] Base64 audio error, falling back:`, e);
-        fallbackSpeechSynthesis(cleanText, sessionId, onStart, onEnd, onError);
+        console.warn(`[VoiceTurn #${sessionId}] Base64 audio error:`, e);
       };
 
       await audio.play();
+      if (clientAudioCache.size < 60) {
+        clientAudioCache.set(cacheKey, audioUrl);
+      }
       return;
     } catch (err) {
       console.warn(`[VoiceTurn #${sessionId}] Direct audio play notice:`, err);
     }
   }
 
-  let serverTtsSucceeded = false;
-
-  // 2. Fallback to OpenAI Studio TTS endpoint if audioBase64 was not provided
-  try {
-    const res = await fetch("/api/assistant/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: cleanText, voice }),
-      signal: AbortSignal.timeout(9000),
-    });
-
-    // Check if user cancelled or ended voice mode while fetch was running!
-    if (sessionId !== currentSessionId) {
-      console.log(`[VoiceTurn #${sessionId}] Session was cancelled during fetch; discarding audio response.`);
-      return;
-    }
-
-    if (res.ok) {
-      const blob = await res.blob();
-      if (sessionId !== currentSessionId) {
-        return;
-      }
-
-      if (blob && blob.size > 200) {
-        const url = URL.createObjectURL(blob);
-        activeObjectUrl = url;
-
-        const audio = new Audio(url);
-        activeAudio = audio;
-
-        audio.onplay = () => {
-          if (sessionId !== currentSessionId) {
-            audio.pause();
-            return;
-          }
-          console.log(`[VoiceTurn #${sessionId}] OpenAI Studio audio playback started (Avatar state: speaking)`);
-          if (onStart) onStart();
-        };
-
-        audio.onended = () => {
-          if (sessionId !== currentSessionId) return;
-          console.log(`[VoiceTurn #${sessionId}] OpenAI Studio audio playback ended (Avatar state: ready)`);
-          stopAudio();
-          if (onEnd) onEnd();
-        };
-
-        audio.onerror = (e) => {
-          if (sessionId !== currentSessionId) return;
-          console.warn(`[VoiceTurn #${sessionId}] Audio element error, attempting speech synthesis fallback:`, e);
-          fallbackSpeechSynthesis(cleanText, sessionId, onStart, onEnd, onError);
-        };
-
-        await audio.play();
-        serverTtsSucceeded = true;
-        return;
-      }
-    }
-  } catch (err) {
-    console.warn(`[VoiceTurn #${sessionId}] Server TTS fetch notice:`, err);
-  }
-
-  // 3. Fallback to Enhanced Browser Speech Synthesis only if not cancelled and server failed
-  if (!serverTtsSucceeded && sessionId === currentSessionId) {
-    fallbackSpeechSynthesis(cleanText, sessionId, onStart, onEnd, onError);
-  }
-}
-
-/**
- * Enhanced Browser Speech Synthesis fallback with session validation
- */
-function fallbackSpeechSynthesis(
-  text: string,
-  sessionId: number,
-  onStart?: () => void,
-  onEnd?: () => void,
-  onError?: (err: any) => void
-) {
+  // 3. Request Studio Voice via /api/assistant/tts with retry
+  console.log(`[VoiceTurn #${sessionId}] Requesting studio speech playback (/api/assistant/tts)...`);
+  const blob = await fetchStudioAudio(cleanText, voice, sessionId);
   if (sessionId !== currentSessionId) return;
 
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-    console.warn("[VoiceTurn] No speech synthesis available in this browser");
-    if (onEnd) onEnd();
-    return;
+  if (blob) {
+    try {
+      const url = URL.createObjectURL(blob);
+      activeObjectUrl = url;
+
+      const audio = new Audio(url);
+      activeAudio = audio;
+
+      audio.onplay = () => {
+        if (sessionId !== currentSessionId) {
+          audio.pause();
+          return;
+        }
+        console.log(`[VoiceTurn #${sessionId}] OpenAI Studio audio playback started`);
+        if (onStart) onStart();
+      };
+
+      audio.onended = () => {
+        if (sessionId !== currentSessionId) return;
+        console.log(`[VoiceTurn #${sessionId}] OpenAI Studio audio playback ended`);
+        stopAudio();
+        if (onEnd) onEnd();
+      };
+
+      audio.onerror = (e) => {
+        if (sessionId !== currentSessionId) return;
+        console.error(`[VoiceTurn #${sessionId}] Audio element playback error:`, e);
+        if (onError) onError({ message: "Audio playback encountered an error on this device.", isVoiceDegraded: true });
+        if (onEnd) onEnd();
+      };
+
+      await audio.play();
+      if (clientAudioCache.size < 60) {
+        clientAudioCache.set(cacheKey, url);
+      }
+      return;
+    } catch (playErr) {
+      console.error(`[VoiceTurn #${sessionId}] Audio playback failed:`, playErr);
+    }
   }
 
-  try {
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.resume();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-
-    const voices = window.speechSynthesis.getVoices();
-    const naturalVoice =
-      voices.find(
-        (v) =>
-          (v.name.includes("Natural") ||
-            v.name.includes("Google") ||
-            v.name.includes("Premium") ||
-            v.name.includes("Samantha") ||
-            v.name.includes("Daniel") ||
-            v.name.includes("Karen")) &&
-          v.lang.startsWith("en")
-      ) ||
-      voices.find((v) => v.lang.startsWith("en")) ||
-      voices[0];
-
-    if (naturalVoice) {
-      utterance.voice = naturalVoice;
+  // 4. Mandatory Studio Voice handling:
+  // Strictly prevent falling back to the flat robotic mobile browser speech synthesis.
+  if (sessionId === currentSessionId) {
+    console.warn(`[VoiceTurn #${sessionId}] Studio TTS unavailable after retry; notifying user cleanly rather than using robotic synthesizer.`);
+    if (onError) {
+      onError({ 
+        message: "Studio voice audio connection is temporarily slow on your mobile network. Please check your connection or switch to text chat.",
+        isVoiceDegraded: true 
+      });
     }
-
-    utterance.onstart = () => {
-      if (sessionId !== currentSessionId) {
-        window.speechSynthesis.cancel();
-        return;
-      }
-      console.log(`[VoiceTurn #${sessionId}] SpeechSynthesis started (Speaking state active)`);
-      if (onStart) onStart();
-    };
-
-    utterance.onend = () => {
-      if (sessionId !== currentSessionId) return;
-      console.log(`[VoiceTurn #${sessionId}] SpeechSynthesis finished (Turn ready for listening)`);
-      if (onEnd) onEnd();
-    };
-
-    utterance.onerror = (e) => {
-      if (sessionId !== currentSessionId) return;
-      console.warn(`[VoiceTurn #${sessionId}] SpeechSynthesis error:`, e);
-      if (onEnd) onEnd();
-      if (onError) onError(e);
-    };
-
-    window.speechSynthesis.speak(utterance);
-  } catch (e) {
-    console.error("[VoiceTurn] Failed fallback speech synthesis:", e);
     if (onEnd) onEnd();
-    if (onError) onError(e);
   }
 }

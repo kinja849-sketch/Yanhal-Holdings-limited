@@ -1,7 +1,7 @@
 /**
  * Yanhal Holdings Ltd — Dynamic Conversational Engine
- * Completely eliminates canned/scripted answers.
- * Retains full conversation history, learns from progress, and composes dynamic human-like responses.
+ * Completely eliminates canned/scripted answers and brittle regex matches.
+ * Uses authentic engineering comprehension and native tool calling.
  */
 
 import { calculateYanhalEstimate, findWebsiteSection, YANHAL_OFFICE_LOCATION } from './assistantKnowledge';
@@ -23,31 +23,94 @@ export function sanitizeNaturalText(text: string): string {
     .trim();
 }
 
-const SYSTEM_INSTRUCTION = `You are Bot, the conversational AI for Yanhal Holdings Limited, a premier construction and civil engineering firm in Nairobi, Kenya.
+const DYNAMIC_ASSISTANT_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "calculate_estimate",
+      description: "Compute and display an indicative construction, interior, renovation, commercial, or structural cost benchmark card. Call this ONLY when the user explicitly requests an estimate calculation or specifies project area dimensions to price. Do NOT call this for general questions about pricing factors, rate policies, or payment terms.",
+      parameters: {
+        type: "object",
+        properties: {
+          projectType: {
+            type: "string",
+            enum: ["construction", "interior", "renovation", "commercial", "engineering"],
+            description: "The category of construction work"
+          },
+          sizeSqm: {
+            type: "number",
+            description: "Project size in square metres"
+          },
+          serviceDepth: {
+            type: "string",
+            enum: ["basic", "standard", "full"],
+            description: "Level of finishing / depth (basic = 1.0x, standard = 1.5x, full turnkey = 2.5x)"
+          }
+        },
+        required: ["projectType", "sizeSqm"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "show_headquarters_location",
+      description: "Display the interactive Yanhal headquarters card with Google Maps and satellite view. Call this ONLY when the user specifically asks where Yanhal is located in Nairobi, asks for directions to our Nairobi office, or asks how to visit our headquarters in person. Do NOT call this for general inquiries about other cities or regional operations.",
+      parameters: { type: "object", properties: {} }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "navigate_website",
+      description: "Navigate the visitor to a specific section on the Yanhal website when they ask to view, see, or jump to a section (e.g. services, portfolio, process, about, contact, estimator).",
+      parameters: {
+        type: "object",
+        properties: {
+          sectionName: {
+            type: "string",
+            description: "Target section name: 'services', 'portfolio', 'process', 'about', 'contact', 'estimator'"
+          }
+        },
+        required: ["sectionName"]
+      }
+    }
+  }
+];
 
-CURRENT CONTEXT:
-- Today's date is Tuesday, September 29, 2026.
-- Nairobi time is East Africa Time (EAT, UTC+3).
-- Headquarters: South C, Behind Masjid As Salaam, Nairobi, Kenya.
-- Direct Contact: Phone +254 724 093256, WhatsApp +254 740 895374, Email Yanhalholdingslimited@gmail.com.
-- Hours: Monday to Friday 8:00 AM – 5:00 PM, Saturday 9:00 AM – 1:00 PM EAT. Sunday closed.
-- Leadership: Ismail Abdirahman (CEO), Dahir Yusuf (Project Manager - Buildings & Road Construction).
-- Construction Services & Indicative Base Rates:
-  1. Construction & Civil: 45,000 KES per square metre (~$347 USD/sqm)
-  2. Interior Design & Fit-Out: 25,000 KES per square metre (~$193 USD/sqm)
-  3. Renovation & Remodeling: 30,000 KES per square metre (~$231 USD/sqm)
-  4. Custom Commercial Setup: 35,000 KES per square metre (~$270 USD/sqm)
-  5. Structural Engineering: 40,000 KES per square metre (~$308 USD/sqm)
-- Service Depth Multipliers: Basic (1.0x), Standard (1.5x), Full Turnkey (2.5x).
-- 6-Step Blueprint Process: Consultation & Project Understanding, Planning & Design Development, Material Selection & Preparation, Construction Execution Phase, Quality Check & Final Touches, Project Handover & Support.
-- Completed Projects: Modern Retail Kiosk Development, Interior Space Transformation, Residential Interior Upgrade, Renovation & Structural Improvement, Custom Business Setup.
+const DYNAMIC_SYSTEM_INSTRUCTION = `You are Dahir, a senior project and civil engineer at Yanhal Holdings Limited in Nairobi, Kenya.
+You are having a direct, professional conversation with a prospective client, property owner, or developer.
 
-CRITICAL CONVERSATIONAL RULES:
-1. NEVER USE PRE-WRITTEN TEMPLATES OR SCRIPTS. Compose your own authentic, natural, intelligent sentences tailored to the visitor's exact words.
-2. Maintain context: remember what the visitor previously told you and learn from the conversation progress.
-3. Answer any question directly. If asked about the date, current time, our team, prices, or technical advice, give the exact honest answer.
-4. NO MARKDOWN DECORATION: Strictly do not use hash symbols (#), asterisks (*), bullet dashes (-), or list markers in your replies. Use flowing, well-structured natural paragraphs.
-5. If the visitor uploads an image, analyze and discuss what their image shows (e.g. blueprints, site conditions, finishing references).`;
+CORE CONVERSATIONAL PRINCIPLES:
+1. COMPREHEND & ANSWER DIRECTLY:
+   - Understand the specific intent, nuance, and context of the visitor's question.
+   - Answer their specific question directly in your very first sentence.
+   - Never start with generic filler or corporate marketing introductions (DO NOT say "Welcome to Yanhal Holdings", "At Yanhal Holdings Limited, we pride ourselves on...", "Thank you for reaching out", or "I'd be glad to help with that"). Jump straight into the substantive answer.
+
+2. NEVER SOUND SCRIPTED:
+   - Talk like an authentic, highly capable construction professional in Nairobi, not an FAQ brochure or customer service script.
+   - Do NOT list out all company services, rates, or the 6-step blueprint process unless the visitor explicitly asks for a full overview or step-by-step methodology.
+   - Give realistic engineering insight. When appropriate, draw naturally on real construction considerations: Nairobi soil types (black cotton vs red volcanic), structural stability, county building approvals and NCA compliance, material sourcing, site topography, and Bill of Quantities (BQ) budgeting.
+
+3. REFERENCE KNOWLEDGE (Factual basis for your answers; speak naturally, do not recite like a script):
+   - Company: Yanhal Holdings Limited, construction and civil engineering firm established in 2020.
+   - Headquarters: South C, Behind Masjid As Salaam, Nairobi, Kenya.
+   - Hours: Monday to Friday 8:00 AM – 5:00 PM, Saturday 9:00 AM – 1:00 PM East Africa Time (EAT). Sunday closed.
+   - Contacts: Phone +254 724 093256, WhatsApp +254 740 895374, Email Yanhalholdingslimited@gmail.com.
+   - Leadership: Ismail Abdirahman (CEO), Dahir Yusuf (Project Manager - Buildings & Road Construction).
+   - Indicative Baseline Planning Benchmarks (all subject to site inspection and Bill of Quantities):
+     * New Construction & Civil: ~45,000 KES/sqm (~$347 USD/sqm)
+     * Interior Design & Fit-Out: ~25,000 KES/sqm (~$193 USD/sqm)
+     * Renovation & Remodeling: ~30,000 KES/sqm (~$231 USD/sqm)
+     * Commercial Setup: ~35,000 KES/sqm (~$270 USD/sqm)
+     * Structural Engineering: ~40,000 KES/sqm (~$308 USD/sqm)
+     * Depth multipliers: Basic (1.0x), Standard (1.5x), Full Turnkey (2.5x).
+   - Blueprint Process (only share if requested): 1. Consultation & Site Visit, 2. Planning & Design, 3. Material Selection, 4. Construction Execution, 5. Quality Inspection, 6. Handover & Warranty Support.
+   - Geographic Scope: We are based in Nairobi but undertake projects across Kenya (e.g. Mombasa, Kisumu, Nakuru, Eldoret, Kiambu, Machakos).
+
+4. FORMATTING RULES:
+   - Output natural conversational prose. DO NOT use bullet points, numbered lists, asterisks (*), hashtags (#), or dash bullets (-).
+   - If the visitor uploads an image, analyze and discuss what their image shows (blueprints, site conditions, finishing references).`;
 
 export async function generateDynamicAssistantResponse(
   conversationHistory: ChatMessage[],
@@ -61,75 +124,20 @@ export async function generateDynamicAssistantResponse(
     apiKey = (typeof process !== "undefined" && process.env?.OPENAI_API_KEY) || "";
   }
 
-  // Check if navigation was requested
-  const section = findWebsiteSection(userMessage);
-  let navigationTarget: any = null;
-  if (section && (userMessage.toLowerCase().includes("go to") || userMessage.toLowerCase().includes("show me") || userMessage.toLowerCase().includes("navigate") || userMessage.toLowerCase().includes("take me"))) {
-    navigationTarget = {
-      panelId: section.panelId,
-      anchor: section.anchor,
-      label: section.name,
-    };
-  }
-
-  // Check if estimate calculation is relevant
   let actionType: string | undefined;
   let actionData: any = null;
-  const lower = userMessage.toLowerCase();
+  let navigationTarget: any = null;
 
-  // Check if verified company location is requested
-  if (
-    lower.includes("location") || 
-    lower.includes("address") || 
-    lower.includes("where are you") || 
-    lower.includes("headquarters") || 
-    lower.includes("office") ||
-    lower.includes("south c")
-  ) {
-    const isCompanyLocation = 
-      lower.includes("company") || 
-      lower.includes("yanhal") || 
-      lower.includes("office") || 
-      lower.includes("headquarters") || 
-      lower.includes("where are you") || 
-      lower.includes("where is your") ||
-      lower.includes("where is the location") ||
-      !lower.includes("my project") && !lower.includes("my site");
-
-    if (isCompanyLocation) {
-      actionType = "company_location";
-      actionData = YANHAL_OFFICE_LOCATION;
-    }
-  }
-
-  if (lower.includes("estimate") || lower.includes("cost") || lower.includes("price") || lower.includes("how much") || lower.includes("calculate") || lower.includes("sqm")) {
-    const sizeMatch = userMessage.match(/(\d+)\s*(?:sqm|sq\s*m|square\s*met(?:er|re)s?|m2)/i);
-    const size = sizeMatch ? parseInt(sizeMatch[1], 10) : 150;
-    let pType = "construction";
-    if (lower.includes("interior") || lower.includes("fit-out") || lower.includes("fit out")) pType = "interior";
-    else if (lower.includes("renovat") || lower.includes("remodel")) pType = "renovation";
-    else if (lower.includes("commercial")) pType = "commercial";
-    else if (lower.includes("engineering")) pType = "engineering";
-
-    let depth = "standard";
-    if (lower.includes("turnkey") || lower.includes("full") || lower.includes("luxury")) depth = "full";
-    else if (lower.includes("basic") || lower.includes("essential")) depth = "basic";
-
-    actionType = "estimate_calculated";
-    actionData = calculateYanhalEstimate(pType, size, depth);
-  }
-
-  // If OpenAI API key is available, call gpt-4o-mini dynamically
   if (apiKey && apiKey.startsWith("sk-")) {
     try {
       const messagesPayload: any[] = [
-        { role: "system", content: SYSTEM_INSTRUCTION },
+        { role: "system", content: DYNAMIC_SYSTEM_INSTRUCTION },
       ];
 
       // Include previous conversation history for memory and context
       conversationHistory.slice(-8).forEach(m => {
         messagesPayload.push({
-          role: m.role === "visitor" ? "user" : m.role,
+          role: (m.role as string) === "visitor" ? "user" : m.role,
           content: m.content,
         });
       });
@@ -148,7 +156,8 @@ export async function generateDynamicAssistantResponse(
         messagesPayload.push({ role: "user", content: userMessage });
       }
 
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      // First pass: call model with tools
+      const res1 = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -157,95 +166,136 @@ export async function generateDynamicAssistantResponse(
         body: JSON.stringify({
           model: "gpt-4o-mini",
           messages: messagesPayload,
-          temperature: 0.7, // Higher temperature for lively, natural conversation without scripted repetition
+          tools: DYNAMIC_ASSISTANT_TOOLS,
+          temperature: 0.72,
           max_tokens: 380,
         }),
-        signal: AbortSignal.timeout(9000),
+        signal: AbortSignal.timeout(10000),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content;
-        if (text && text.trim().length > 0) {
-          return {
-            reply: sanitizeNaturalText(text),
-            actionType,
-            actionData,
-            navigationTarget,
-          };
+      if (res1.ok) {
+        const data1 = await res1.json();
+        const choice = data1.choices?.[0];
+
+        if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
+          const toolCall = choice.message.tool_calls[0];
+          const funcName = toolCall.function.name;
+          let args: any = {};
+          try {
+            args = JSON.parse(toolCall.function.arguments || "{}");
+          } catch (_) {}
+
+          let toolResult: any = {};
+
+          if (funcName === "calculate_estimate") {
+            const pType = args.projectType || "construction";
+            const size = typeof args.sizeSqm === "number" ? args.sizeSqm : 150;
+            const depth = args.serviceDepth || "standard";
+            const calculation = calculateYanhalEstimate(pType, size, depth);
+            actionType = "estimate_calculated";
+            actionData = calculation;
+
+            toolResult = {
+              status: "success",
+              calculation: {
+                projectType: calculation.projectType,
+                sizeSqm: calculation.sizeSqm,
+                serviceDepth: calculation.serviceDepth,
+                minKes: calculation.minKes,
+                maxKes: calculation.maxKes,
+                minUsd: calculation.minUsd,
+                maxUsd: calculation.maxUsd,
+                ratePerSqmKes: calculation.ratePerSqmKes,
+              },
+              note: "Interactive estimate card is displayed below your message. Converse warmly and summarize this benchmark in your own natural words, noting that final figures require physical site assessment and a Bill of Quantities.",
+            };
+          }
+          else if (funcName === "show_headquarters_location") {
+            actionType = "company_location";
+            actionData = YANHAL_OFFICE_LOCATION;
+
+            toolResult = {
+              status: "success",
+              headquarters: {
+                address: "South C, Behind Masjid As Salaam, Nairobi, Kenya",
+                hours: "Monday to Friday 8:00 AM – 5:00 PM, Saturday 9:00 AM – 1:00 PM EAT. Sunday closed.",
+              },
+              note: "Interactive Google Maps & satellite location card is displayed below your message. Welcomingly state our South C address and operating hours.",
+            };
+          }
+          else if (funcName === "navigate_website") {
+            const section = findWebsiteSection(args.sectionName || "");
+            if (section) {
+              navigationTarget = {
+                panelId: section.panelId,
+                anchor: section.anchor,
+                label: section.name,
+              };
+              toolResult = {
+                status: "success",
+                navigatedTo: section.name,
+                note: `Let the visitor know naturally that you are taking them to the ${section.name} section.`,
+              };
+            } else {
+              toolResult = { status: "not_found", note: "Section not found." };
+            }
+          }
+
+          // Second pass: compose final natural response
+          messagesPayload.push(choice.message);
+          messagesPayload.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: JSON.stringify(toolResult),
+          });
+
+          const res2 = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              messages: messagesPayload,
+              temperature: 0.72,
+              max_tokens: 380,
+            }),
+            signal: AbortSignal.timeout(10000),
+          });
+
+          if (res2.ok) {
+            const data2 = await res2.json();
+            const text = data2.choices?.[0]?.message?.content;
+            if (text && text.trim().length > 0) {
+              return {
+                reply: sanitizeNaturalText(text),
+                actionType,
+                actionData,
+                navigationTarget,
+              };
+            }
+          }
+        } else {
+          const directText = choice?.message?.content;
+          if (directText && directText.trim().length > 0) {
+            return {
+              reply: sanitizeNaturalText(directText),
+              actionType,
+              actionData,
+              navigationTarget,
+            };
+          }
         }
       }
     } catch (err) {
-      console.warn("[Dynamic Chat] OpenAI request fallback:", err);
+      console.warn("[Dynamic Chat] OpenAI request notice:", err);
     }
   }
 
-  // Dynamic Contextual Rule-Based Fallback (No canned repetitive scripts!)
-  if (lower.includes("date") || lower.includes("day is it") || lower.includes("today")) {
-    return {
-      reply: "Today is Tuesday, September 29, 2026. How can I assist you with your project today?",
-      actionType,
-      actionData,
-      navigationTarget,
-    };
-  }
-
-  if (lower === "hi" || lower === "hello" || lower === "hey" || lower.startsWith("hi ") || lower.startsWith("hello ")) {
-    return {
-      reply: "Hello! Welcome to Yanhal Holdings. I am Bot, your conversational guide for construction, interior renovations, and project estimates in Nairobi. What are you looking to build or design?",
-      actionType,
-      actionData,
-      navigationTarget,
-    };
-  }
-
-  if (lower === "like" || lower.startsWith("like ")) {
-    return {
-      reply: "Could you tell me a bit more about what you have in mind? For example, are you planning a residential development, an interior fit-out, or a commercial space?",
-      actionType,
-      actionData,
-      navigationTarget,
-    };
-  }
-
-  if (actionType === "estimate_calculated" && actionData) {
-    return {
-      reply: `For a ${actionData.serviceDepth} ${actionData.projectType} project of approximately ${actionData.sizeSqm} square metres, our indicative cost benchmark is between KES ${actionData.minKes.toLocaleString()} and KES ${actionData.maxKes.toLocaleString()}, which is roughly ${actionData.minUsd.toLocaleString()} to ${actionData.maxUsd.toLocaleString()} United States Dollars. This is calculated at our standard base rate of KES ${actionData.ratePerSqmKes.toLocaleString()} per square metre. Would you like me to email you a detailed summary, or help you book an on-site consultation?`,
-      actionType,
-      actionData,
-      navigationTarget,
-    };
-  }
-
-  if (lower.includes("service") || lower.includes("what do you do")) {
-    return {
-      reply: "Yanhal Holdings delivers five core capabilities: Construction and Civil works, Interior Design and Fit-Out, Renovation and Remodeling, Custom Commercial Setups, and Structural Engineering. We handle everything from ground-up builds in Nairobi to turnkey interior transformations.",
-      actionType,
-      actionData,
-      navigationTarget,
-    };
-  }
-
-  if (lower.includes("leader") || lower.includes("ceo") || lower.includes("who runs")) {
-    return {
-      reply: "Yanhal Holdings is led by Chief Executive Officer Ismail Abdirahman, who steers executive operations and client partnerships, and Project Manager Dahir Yusuf, who oversees on-site building, road construction, and structural tolerances.",
-      actionType,
-      actionData,
-      navigationTarget,
-    };
-  }
-
-  if (lower.includes("location") || lower.includes("where are you") || lower.includes("office") || lower.includes("south c")) {
-    return {
-      reply: "Yanhal Holdings is headquartered in South C, behind Masjid As Salaam in Nairobi, Kenya. We manage and execute projects throughout Nairobi and across Kenya.",
-      actionType,
-      actionData,
-      navigationTarget,
-    };
-  }
-
+  // Honest message if live AI model is unavailable
   return {
-    reply: `I understand you are asking about ${userMessage}. I can assist you with estimating project costs, exploring our blueprint process, reviewing completed architectural works, or booking an on-site consultation with our operations team. How would you like to proceed?`,
+    reply: "I am experiencing a momentary connection hitch to our live engineering system. Please reach our Nairobi team directly at +254 724 093256, via WhatsApp at +254 740 895374, or at Yanhalholdingslimited@gmail.com, and we will assist you immediately.",
     actionType,
     actionData,
     navigationTarget,

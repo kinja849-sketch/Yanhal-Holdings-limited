@@ -34,6 +34,13 @@ export default function YanhalBot() {
   const [showOwnerView, setShowOwnerView] = useState(false);
   const [ownerData, setOwnerData] = useState<any>(null);
 
+  // Live speech capture and turn completion state
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const liveTranscriptRef = useRef("");
+  const hasFinalResultRef = useRef(false);
+  const turnCommittedRef = useRef(false);
+  const handleSendRef = useRef<((text?: string, mode?: "text" | "voice") => Promise<void>) | null>(null);
+
   // Mobile viewport tracking for dynamic browser chrome & virtual keyboard
   const [isMobile, setIsMobile] = useState(false);
   const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
@@ -185,8 +192,17 @@ export default function YanhalBot() {
         try { speechRecognitionRef.current.stop(); } catch (_) {}
       }
 
+      turnCommittedRef.current = false;
+      hasFinalResultRef.current = false;
+      liveTranscriptRef.current = "";
+      setLiveTranscript("");
+
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
+      try {
+        recognition.continuous = true;
+      } catch (_) {
+        recognition.continuous = false;
+      }
       recognition.interimResults = true;
       recognition.lang = "en-US";
 
@@ -200,7 +216,7 @@ export default function YanhalBot() {
       let finalTranscript = "";
 
       recognition.onstart = () => {
-        console.log(`[VoiceTurn] Microphone capture active (State: listening)`);
+        console.log(`[VoiceTurn] Microphone capture active (Continuous: ${recognition.continuous}, State: listening)`);
       };
 
       recognition.onresult = (event: any) => {
@@ -210,27 +226,40 @@ export default function YanhalBot() {
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTranscript += transcript;
+            finalTranscript += (finalTranscript ? " " : "") + transcript.trim();
+            hasFinalResultRef.current = true;
           } else {
-            interim += transcript;
+            interim += (interim ? " " : "") + transcript.trim();
           }
         }
 
-        const currentText = finalTranscript || interim;
+        const currentText = (finalTranscript + " " + interim).trim();
+        liveTranscriptRef.current = currentText;
         console.log(`[VoiceTurn] Speech captured: "${currentText}"`);
+
         if (targetMode === "dictation") {
           setInputValue(currentText);
+        } else {
+          setLiveTranscript(currentText);
         }
 
-        // Active silence detector: automatically commit speech 700ms after user pauses speaking
+        // Patient silence detector: wait 2000ms (2 full seconds) after user pauses speaking
+        // Eliminates abrupt cut-offs while natural breathing or thinking pauses occur
         if (targetMode === "voicetovoice" && currentText.trim()) {
           if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
           silenceTimerRef.current = setTimeout(() => {
-            if (isVoiceToVoiceRef.current && speechRecognitionRef.current) {
-              console.log("[VoiceTurn] Silence pause detected (700ms); committing turn promptly.");
-              try { speechRecognitionRef.current.stop(); } catch (_) {}
+            if (isVoiceToVoiceRef.current && !turnCommittedRef.current && speechRecognitionRef.current) {
+              const textToCommit = liveTranscriptRef.current.trim();
+              if (textToCommit) {
+                console.log("[VoiceTurn] Patient silence timeout expired (2000ms); committing turn.");
+                turnCommittedRef.current = true;
+                try { speechRecognitionRef.current.stop(); } catch (_) {}
+                setLiveTranscript("");
+                liveTranscriptRef.current = "";
+                handleSendRef.current?.(textToCommit, "voice");
+              }
             }
-          }, 700);
+          }, 2000);
         }
       };
 
@@ -246,7 +275,9 @@ export default function YanhalBot() {
         if (targetMode === "dictation") {
           setIsDictating(false);
         } else {
-          setVoiceStatus("idle");
+          if (e.error !== "no-speech" && e.error !== "aborted") {
+            setVoiceStatus("idle");
+          }
         }
       };
 
@@ -258,34 +289,43 @@ export default function YanhalBot() {
         }
         if (targetMode === "dictation") {
           setIsDictating(false);
-        } else {
-          // If the user already closed voice mode, ignore completely!
-          if (!isVoiceToVoiceRef.current) {
-            console.log("[VoiceTurn] Voice mode closed; discarding recognition end.");
+          return;
+        }
+
+        if (!isVoiceToVoiceRef.current) {
+          console.log("[VoiceTurn] Voice mode closed; discarding recognition end.");
+          return;
+        }
+
+        if (turnCommittedRef.current || voiceStatusRef.current === "thinking" || voiceStatusRef.current === "speaking") {
+          return;
+        }
+
+        const trimmed = liveTranscriptRef.current.trim();
+        if (trimmed && (hasFinalResultRef.current || trimmed.length > 5)) {
+          if (isEcho(trimmed, lastAssistantReplyRef.current)) {
+            console.log("[VoiceTurn] Echo detected and ignored from speaker feedback.");
+            liveTranscriptRef.current = "";
+            setLiveTranscript("");
+            if (isVoiceToVoiceRef.current) {
+              try { recognition.start(); } catch (_) {}
+            }
             return;
           }
 
-          const trimmed = finalTranscript.trim();
-          if (trimmed) {
-            // Echo guard: discard if speaker picked up the assistant's own voice
-            if (isEcho(trimmed, lastAssistantReplyRef.current)) {
-              console.log("[VoiceTurn] Echo detected and ignored from speaker feedback.");
-              if (isVoiceToVoiceRef.current) {
-                try { recognition.start(); } catch (_) {}
-              }
-              return;
-            }
+          console.log(`[VoiceTurn] Committing turn on recognizer completion: "${trimmed}"`);
+          turnCommittedRef.current = true;
+          setLiveTranscript("");
+          liveTranscriptRef.current = "";
+          handleSendRef.current?.(trimmed, "voice");
+          return;
+        }
 
-            console.log(`[VoiceTurn] Visitor finished turn: "${trimmed}"`);
-            handleSend(trimmed, "voice");
-          } else {
-            // If still in voice mode and expecting user input, keep listening
-            if (isVoiceToVoiceRef.current && voiceStatusRef.current === "listening") {
-              try { recognition.start(); } catch (_) {}
-            } else if (isVoiceToVoiceRef.current && voiceStatusRef.current !== "thinking" && voiceStatusRef.current !== "speaking") {
-              setVoiceStatus("listening");
-            }
-          }
+        // Keep continuous recognition listening if user has not committed
+        if (isVoiceToVoiceRef.current && voiceStatusRef.current === "listening") {
+          try {
+            recognition.start();
+          } catch (_) {}
         }
       };
 
@@ -317,6 +357,10 @@ export default function YanhalBot() {
     console.log("[VoiceTurn] Entering Voice-to-Voice section");
     unlockAudio();
     stopAudio();
+    turnCommittedRef.current = false;
+    hasFinalResultRef.current = false;
+    liveTranscriptRef.current = "";
+    setLiveTranscript("");
     isVoiceToVoiceRef.current = true;
     setIsOpen(true);
     setIsVoiceToVoice(true);
@@ -332,16 +376,20 @@ export default function YanhalBot() {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
+    turnCommittedRef.current = true;
     isVoiceToVoiceRef.current = false;
     stopAudio();
     stopListening();
     setIsVoiceToVoice(false);
     setVoiceStatus("idle");
     setVoiceError(null);
+    setLiveTranscript("");
+    liveTranscriptRef.current = "";
   };
 
   // Send message using dynamic conversational engine
   const handleSend = async (textToSend?: string, mode: "text" | "voice" = "text") => {
+    handleSendRef.current = handleSend;
     const text = (textToSend !== undefined ? textToSend : inputValue).trim();
     if (!text && attachedFiles.length === 0) return;
 
@@ -389,7 +437,7 @@ export default function YanhalBot() {
             message: text,
             mode,
           }),
-          signal: AbortSignal.timeout(6000),
+          signal: AbortSignal.timeout(12000),
         });
 
         if (response.ok) {
@@ -412,6 +460,8 @@ export default function YanhalBot() {
         actionData = dynamicRes.actionData;
         navigationTarget = dynamicRes.navigationTarget;
       }
+
+      lastAssistantReplyRef.current = resultText;
 
       const assistantMsg: MessageItem = {
         id: `asst_${Date.now()}`,
@@ -448,6 +498,9 @@ export default function YanhalBot() {
           },
           onError: (err) => {
             console.warn("[VoiceTurn] Assistant speech playback error, resuming listening:", err);
+            if (err?.message) {
+              setVoiceError(err.message);
+            }
             if (isVoiceToVoiceRef.current) {
               setVoiceStatus("listening");
               startListening("voicetovoice");
@@ -476,6 +529,30 @@ export default function YanhalBot() {
     }
   };
 
+  // Keep ref up to date
+  useEffect(() => {
+    handleSendRef.current = handleSend;
+  });
+
+  // Explicit user signal to commit voice turn immediately without waiting for silence timer
+  const commitVoiceTurnImmediately = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    const textToCommit = liveTranscriptRef.current.trim();
+    if (textToCommit && !turnCommittedRef.current) {
+      console.log(`[VoiceTurn] User explicitly signaled completion: "${textToCommit}"`);
+      turnCommittedRef.current = true;
+      try {
+        if (speechRecognitionRef.current) speechRecognitionRef.current.stop();
+      } catch (_) {}
+      setLiveTranscript("");
+      liveTranscriptRef.current = "";
+      handleSend(textToCommit, "voice");
+    }
+  }, []);
+
   // Handle Image Upload
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -489,7 +566,7 @@ export default function YanhalBot() {
             setAttachedPreviews(prev => [...prev, ev.target!.result as string]);
           }
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(file as Blob);
       });
     }
   };
@@ -725,6 +802,25 @@ export default function YanhalBot() {
                         </span>
                       )}
                     </div>
+
+                    {/* Live speech feedback & explicit completion trigger */}
+                    {voiceStatus === "listening" && liveTranscript && (
+                      <div className="mt-2.5 flex flex-col items-center gap-2 max-w-sm px-4">
+                        <p className="text-xs text-neutral-700 bg-neutral-100/90 px-3.5 py-1.5 rounded-full border border-neutral-200/80 italic text-center shadow-xs">
+                          "{liveTranscript}"
+                        </p>
+                        <button
+                          type="button"
+                          onClick={commitVoiceTurnImmediately}
+                          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full shadow-sm transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          Done Speaking
+                        </button>
+                      </div>
+                    )}
 
                     {/* Permission / Network Error Notice if any */}
                     {voiceError && (

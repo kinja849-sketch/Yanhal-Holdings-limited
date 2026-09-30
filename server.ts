@@ -20,6 +20,9 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// In-memory cache for studio-grade audio synthesis
+const ttsServerCache = new Map<string, Buffer>();
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -170,24 +173,35 @@ async function startServer() {
             .replace(/https?:\/\/\S+/g, "our website")
             .slice(0, 500);
 
-          const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: "tts-1",
-              input: cleanSpeechText,
-              voice: "nova",
-              speed: 1.05,
-            }),
-            signal: AbortSignal.timeout(5000),
-          });
+          const cacheKey = `nova_${cleanSpeechText.toLowerCase().trim()}`;
+          if (ttsServerCache.has(cacheKey)) {
+            const buf = ttsServerCache.get(cacheKey)!;
+            audioBase64 = buf.toString("base64");
+          } else {
+            const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+              },
+              body: JSON.stringify({
+                model: "tts-1",
+                input: cleanSpeechText,
+                voice: "nova",
+                speed: 1.05,
+              }),
+              signal: AbortSignal.timeout(12000),
+            });
 
-          if (ttsRes.ok) {
-            const buf = await ttsRes.arrayBuffer();
-            audioBase64 = Buffer.from(buf).toString("base64");
+            if (ttsRes.ok) {
+              const buf = Buffer.from(await ttsRes.arrayBuffer());
+              if (ttsServerCache.size > 200) {
+                const oldest = ttsServerCache.keys().next().value;
+                if (oldest) ttsServerCache.delete(oldest);
+              }
+              ttsServerCache.set(cacheKey, buf);
+              audioBase64 = buf.toString("base64");
+            }
           }
         } catch (ttsErr) {
           console.warn("[Assistant Chat] Inline TTS generation notice:", ttsErr);
@@ -255,6 +269,18 @@ async function startServer() {
         .replace(/https?:\/\/\S+/g, "our website")
         .slice(0, 1000);
 
+      const selectedVoice = voice || "nova";
+      const cacheKey = `${selectedVoice}_${cleanText.toLowerCase().trim()}`;
+
+      // Check server memory cache for instant response
+      if (ttsServerCache.has(cacheKey)) {
+        const cachedBuf = ttsServerCache.get(cacheKey)!;
+        res.setHeader("Content-Type", "audio/mpeg");
+        res.setHeader("Content-Length", cachedBuf.length);
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        return res.send(cachedBuf);
+      }
+
       const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
         method: "POST",
         headers: {
@@ -264,9 +290,10 @@ async function startServer() {
         body: JSON.stringify({
           model: "tts-1",
           input: cleanText,
-          voice: voice || "nova",
+          voice: selectedVoice,
           speed: 1.0,
         }),
+        signal: AbortSignal.timeout(12000),
       });
 
       if (!ttsResponse.ok) {
@@ -276,9 +303,17 @@ async function startServer() {
       }
 
       const buffer = Buffer.from(await ttsResponse.arrayBuffer());
+
+      // Store in memory cache
+      if (ttsServerCache.size > 200) {
+        const oldest = ttsServerCache.keys().next().value;
+        if (oldest) ttsServerCache.delete(oldest);
+      }
+      ttsServerCache.set(cacheKey, buffer);
+
       res.setHeader("Content-Type", "audio/mpeg");
       res.setHeader("Content-Length", buffer.length);
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cache-Control", "public, max-age=86400");
       res.send(buffer);
     } catch (err: any) {
       console.error("[TTS Endpoint Error]:", err);

@@ -155,6 +155,28 @@ try {
       created_at TEXT,
       updated_at TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS uploaded_files (
+      id TEXT PRIMARY KEY,
+      visitor_id TEXT NOT NULL,
+      enquiry_id TEXT,
+      file_name TEXT NOT NULL,
+      file_type TEXT NOT NULL,
+      file_size INTEGER NOT NULL,
+      storage_path TEXT NOT NULL,
+      ai_description TEXT,
+      created_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS concept_images (
+      id TEXT PRIMARY KEY,
+      visitor_id TEXT NOT NULL,
+      enquiry_id TEXT,
+      prompt TEXT NOT NULL,
+      image_url TEXT NOT NULL,
+      is_confirmed INTEGER,
+      created_at TEXT
+    );
   `);
 } catch (e) {
   console.warn('[Storage] node:sqlite error, using in-memory fallback:', e);
@@ -461,6 +483,31 @@ export const assistantStorage = {
       );
     }
     return { id, ...data };
+  },
+
+  // 8.5 FILE UPLOADS & CONCEPTS
+  async saveUploadedFile(data: { visitorId: string; enquiryId?: string; fileName: string; fileType: string; fileSize: number; storagePath: string; aiDescription?: string }): Promise<any> {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    if (sqlDb) {
+      sqlDb.prepare(`
+        INSERT INTO uploaded_files (id, visitor_id, enquiry_id, file_name, file_type, file_size, storage_path, ai_description, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(id, data.visitorId, data.enquiryId || null, data.fileName, data.fileType, data.fileSize, data.storagePath, data.aiDescription || '', now);
+    }
+    return { id, ...data, created_at: now };
+  },
+
+  async saveConceptImage(data: { visitorId: string; enquiryId?: string; prompt: string; imageUrl: string; isConfirmed?: boolean }): Promise<any> {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    if (sqlDb) {
+      sqlDb.prepare(`
+        INSERT INTO concept_images (id, visitor_id, enquiry_id, prompt, image_url, is_confirmed, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(id, data.visitorId, data.enquiryId || null, data.prompt, data.imageUrl, data.isConfirmed ? 1 : 0, now);
+    }
+    return { id, ...data, created_at: now };
   },
 
   // 9. OWNER DASHBOARD AGGREGATE

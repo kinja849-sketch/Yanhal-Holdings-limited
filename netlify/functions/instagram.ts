@@ -1,4 +1,5 @@
-import { Handler } from "@netlify/functions";
+// Type definition for Netlify serverless function handler
+type Handler = (event: any, context?: any) => Promise<{ statusCode: number; body: string; headers?: Record<string, string> }>;
 
 // Interface definitions
 interface InstagramRawMedia {

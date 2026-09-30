@@ -85,7 +85,7 @@ export default function Navbar() {
       number: "05", 
       label: "Updates", 
       href: "#updates", 
-      icon: <FaInstagram className="w-4 h-4" />,
+      icon: <span className="w-4 h-4 inline-flex items-center justify-center"><FaInstagram /></span>,
       tagline: "Live Drops & Site Reels",
       accent: "text-[#E0B9A0]",
       borderAccent: "border-[#E0B9A0]/30 group-hover:border-[#E0B9A0] group-hover:bg-[#E0B9A0]/15 group-hover:text-[#FAF8F5]",
