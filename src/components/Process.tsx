@@ -46,7 +46,7 @@ export default function Process() {
         "Confidence that their project is being properly understood"
       ],
       icon: "architecture",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDwuefG8ovmHcp1ksm51UibxCLOFP-7cUa2NMuubmMGdd7tenYlY9AM7t-tgiQgRRv_regxsdy_dtnU2utCc5plt6OXQJHMBvUgOx3Q5PV9TefXWw7RrAZHwqvbLT1yVpzHFt_jnp67hboBqW0nq5XKWMtnN7K8_VBPGcsDNpzPonIHUJ6LEIDiw-jbLGJxV2UumtURYXCCpgk6njU5Yt8X8omFr-0Z9vy1YG9-no-hbh6tsDaAYlBskB6Xh1ss7Zce0Xvx1Tub7oU"
+      image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790716176/Screenshot_2026-09-30_034301_xfvb6v.png"
     },
     {
       id: "02",
@@ -60,7 +60,7 @@ export default function Process() {
         "Reduced risk of unexpected changes"
       ],
       icon: "polyline",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBzLfBQZzuRiGwuyupMX2bekVgnzAhh0MlGIWNwJ4VrzaQHgQtHrToU0z92nWKb4nQJLvYJXTB7bJysmxY0XoAsetmaDWi7cScEUOV_97-yh6txWTThsw-bMKoYwtzO6rxo4jEnyRdvXBRxZS3Uw_SCouxq3Mfdc5O5VM6IF3hb_CMp3Z11QOP0JXEW_Mf7NskQTvh-oSf-3dNxc_WsRZWo3Uk9_05uuefLHe5GH6GnIaLua8xfHYZDWTqM7ZZX8RbzqegoDBmWTck"
+      image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790716175/Screenshot_2026-09-30_034308_ucty01.png"
     },
     {
       id: "03",
@@ -74,7 +74,7 @@ export default function Process() {
         "Smooth transition into execution"
       ],
       icon: "texture",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCCSvc_JWwFQKxZb0krnnZjt8Rl9FxkH69izRW6Cnxh3ahmIgreuWraWQehKNCM2mYlVZorIr6E9YeoU3u8__ex_-ZyIlsdmuvG4z6VuKDGsKqCC47d_5phtGxnfXIFSiIdVZZDFn6t4BfH2GBzz0SV2s0quIp-pDWjMl3jcQPE0VXWUF-6EcWBgvEj1td3GPDiBMZKNtbHlAd1_CRL-L_WtmCuS_0oJI1bsS9a-sAdiEpGzzhVUTkUM9-GAaDsRVbn-QvduFrICoc"
+      image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790715900/Screenshot_2026-09-30_034316_tduwu7.png"
     },
     {
       id: "04",
@@ -88,7 +88,7 @@ export default function Process() {
         "Confidence that work is being handled professionally"
       ],
       icon: "foundation",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCTSpFOhNJgjfRj1_kbIdc2Rgmd9-LXp-RbdlrY2uEiExMn4ZgXPxWiDBnUj4aOkClXvjghxDWDOosR0pZYftJEAjdbpwVKKHmRwJAVZZVxXnHoPlXh5dj31zp6CWA9msP5JrhG24fEKjkQ5mLaNCj0WwR1qUxq91kjQTy08hYnnSG5p8_4Ft0vK9rZua-t1EdAn54jKxL6iBn39PJ6wdRE_hJb-1OP61LC0iGviD5fS-x7dhQzIFLbIvKo6GSL3bLAuTbLethcKAE"
+      image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790716173/Screenshot_2026-09-30_034331_hs8akg.png"
     },
     {
       id: "05",
@@ -102,7 +102,7 @@ export default function Process() {
         "Reduced need for post-completion fixes"
       ],
       icon: "verified",
-      image: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&q=80&w=1000"
+      image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790715899/Screenshot_2026-09-30_034343_ll0q7j.png"
     },
     {
       id: "06",
@@ -116,7 +116,7 @@ export default function Process() {
         "Continued support if needed"
       ],
       icon: "key",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCK1GIwimSG3fdYlbBSojjOJqJUa71iOeRcRLzPHmyt_zCRn70D1hQpgqe0szONBPtxSPVAhGzhA9c2f96wUp0yvB81CUC8r_4CCgrORaWnorx0XowRgqmmzfCMIPRDqnpIpKqmaVv-83AKwXAmaGy43rvoQLjzQ7nQ4s6-xfrDp_cqrdRPhcw8hUDTwCoEAMruuZ534bmFpwz_oMMDDEhHRvFIK6GLhw7-X2BWDROibw_93iPH6pW2Y3bCgJFiGtDwqQsubaQCGpg"
+      image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790716172/Screenshot_2026-09-30_034353_gv6vkg.png"
     }
   ];
 
@@ -626,19 +626,18 @@ export default function Process() {
                     </ul>
                   </div>
 
-                    <button 
-                      onClick={() => setSelectedStep(null)}
-                      className="w-auto inline-flex items-center justify-center px-8 py-3 rounded-full font-mono text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase border border-[#E0B9A0] bg-[#E0B9A0] text-[#2D2926] hover:bg-[#FAF8F5] transition-colors active:scale-95 shadow-[0_0_15px_rgba(224,185,160,0.2)] cursor-pointer"
-                    >
-                      Close Stage
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => setSelectedStep(null)}
+                    className="w-auto inline-flex items-center justify-center px-8 py-3 rounded-full font-mono text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase border border-[#E0B9A0] bg-[#E0B9A0] text-[#2D2926] hover:bg-[#FAF8F5] transition-colors active:scale-95 shadow-[0_0_15px_rgba(224,185,160,0.2)] cursor-pointer"
+                  >
+                    Close Stage
+                  </button>
                 </div>
-              </motion.div>
+              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

@@ -15,8 +15,8 @@ const SECTIONS: SectionMeta[] = [
   { id: "panel-process", name: "Process" },
   { id: "panel-portfolio", name: "Portfolio" },
   { id: "panel-testimonials", name: "Reviews" },
-  { id: "panel-estimator", name: "Estimator" },
-  { id: "panel-contact", name: "Contact" },
+  { id: "panel-updates", name: "Updates" },
+  { id: "panel-contact", name: "Start Project" },
 ];
 
 export default function ScrollTimeline() {

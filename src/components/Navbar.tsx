@@ -9,6 +9,7 @@ import {
   ArrowUpRightIcon, 
   XMarkIcon
 } from "@heroicons/react/24/outline";
+import { FaInstagram } from "react-icons/fa6";
 import { motion, AnimatePresence } from "motion/react";
 import ChrHover from "./ChrHover";
 import { transitionManager } from "../lib/transitionManager";
@@ -82,13 +83,23 @@ export default function Navbar() {
     },
     { 
       number: "05", 
+      label: "Updates", 
+      href: "#updates", 
+      icon: <FaInstagram className="w-4 h-4" />,
+      tagline: "Live Drops & Site Reels",
+      accent: "text-[#E0B9A0]",
+      borderAccent: "border-[#E0B9A0]/30 group-hover:border-[#E0B9A0] group-hover:bg-[#E0B9A0]/15 group-hover:text-[#FAF8F5]",
+      numberColor: "text-[#E0B9A0]"
+    },
+    { 
+      number: "06", 
       label: "Contact", 
       href: "#contact", 
       icon: <EnvelopeIcon className="w-4 h-4 stroke-[1.5]" />,
       tagline: "Estimates & Consultations",
-      accent: "text-[#E0B9A0]",
-      borderAccent: "border-[#E0B9A0]/30 group-hover:border-[#E0B9A0] group-hover:bg-[#E0B9A0]/15 group-hover:text-[#FAF8F5]",
-      numberColor: "text-[#E0B9A0]"
+      accent: "text-white",
+      borderAccent: "border-white/20 group-hover:border-white/50 group-hover:bg-white/10",
+      numberColor: "text-white/70"
     },
   ];
 
@@ -124,17 +135,17 @@ export default function Navbar() {
           </div>
         </a>
         
-        {/* Unified Architectural Hamburger Trigger & Estimate CTA */}
+        {/* Unified Architectural Hamburger Trigger & Start Project CTA */}
         <div className="flex items-center gap-2.5 sm:gap-4">
           <a
-            href="#estimator"
+            href="#contact"
             onClick={(e) => {
               e.preventDefault();
-              transitionManager.transitionTo({ destination: "#estimator", label: "PROJECT ESTIMATOR" });
+              transitionManager.transitionTo({ destination: "#contact", label: "START YOUR PROJECT" });
             }}
             className="hidden sm:inline-flex items-center gap-2 text-[10px] font-mono font-medium tracking-[0.2em] uppercase text-[#E0B9A0] border border-[#E0B9A0]/40 px-3.5 py-1.5 hover:bg-[#E0B9A0] hover:text-[#2D2926] transition-all duration-300 rounded-full shadow-[0_0_12px_rgba(224,185,160,0.15)] active:scale-95 font-bold group"
           >
-            <ChrHover text="ESTIMATE" hoverColor="#2D2926" className="text-[10px] font-mono font-bold tracking-[0.2em]" />
+            <ChrHover text="START PROJECT" hoverColor="#2D2926" className="text-[10px] font-mono font-bold tracking-[0.2em]" />
             <ArrowUpRightIcon className="w-3 h-3 stroke-[2] text-[#E0B9A0] group-hover:text-[#2D2926]" />
           </a>
 
@@ -275,7 +286,7 @@ export default function Navbar() {
                   {/* Drawer Footer */}
                   <div className="p-6 sm:p-8 border-t border-white/10 bg-black/40 relative z-10 flex flex-col gap-4">
                     <a
-                      href="#estimator"
+                      href="#contact"
                       onClick={(e) => {
                         e.preventDefault();
                         setIsMenuOpen(false);
@@ -284,13 +295,13 @@ export default function Navbar() {
                           (window as any).__lenis.start();
                         }
                         transitionManager.transitionTo({
-                          destination: "#estimator",
-                          label: "PROJECT ESTIMATOR",
+                          destination: "#contact",
+                          label: "START YOUR PROJECT",
                         });
                       }}
                       className="btn-fill-hover w-full flex items-center justify-center gap-2.5 border border-[#E0B9A0]/50 bg-[#E0B9A0]/10 text-[#E0B9A0] before:bg-[#E0B9A0] hover:border-[#E0B9A0] hover:text-[#2D2926] font-mono font-bold text-xs uppercase tracking-[0.22em] py-3.5 px-5 rounded-full transition-colors duration-400 shadow-[0_0_15px_rgba(224,185,160,0.15)] active:scale-95"
                     >
-                      <span>Request an Estimate</span>
+                      <span>Start Your Project</span>
                       <ArrowUpRightIcon className="w-3.5 h-3.5 stroke-[2]" />
                     </a>
                   </div>

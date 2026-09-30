@@ -122,6 +122,7 @@ class TransitionManager {
     if (cleanDest.includes("about")) return YANHAL_TRANSITION_THEMES.about;
     if (cleanDest.includes("lead")) return YANHAL_TRANSITION_THEMES.leadership;
     if (cleanDest.includes("process")) return YANHAL_TRANSITION_THEMES.process;
+    if (cleanDest.includes("update") || cleanDest.includes("news")) return YANHAL_TRANSITION_THEMES.social;
     if (cleanDest.includes("estimat")) return YANHAL_TRANSITION_THEMES.estimator;
     if (cleanDest.includes("contact")) return YANHAL_TRANSITION_THEMES.contact;
     if (cleanDest === "home" || cleanDest === "") return YANHAL_TRANSITION_THEMES.home;
@@ -143,8 +144,9 @@ class TransitionManager {
     if (cleanDest === "PORTFOLIO" || cleanDest === "PROJECTS") return "03 · SELECTED WORKS";
     if (cleanDest === "ABOUT") return "04 · STANDARDS & LEADERSHIP";
     if (cleanDest === "PROCESS") return "BLUEPRINT PROCESS";
-    if (cleanDest === "ESTIMATOR") return "PROJECT ESTIMATOR";
-    if (cleanDest === "CONTACT") return "05 · CONSULTATIONS";
+    if (cleanDest.includes("UPDATE") || cleanDest.includes("NEWS")) return "LATEST UPDATES";
+    if (cleanDest === "ESTIMATOR") return "START YOUR PROJECT";
+    if (cleanDest === "CONTACT" || cleanDest === "START-PROJECT") return "START YOUR PROJECT";
     return cleanDest;
   }
 

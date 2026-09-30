@@ -344,7 +344,7 @@ export default function Services() {
                     <button 
                       onClick={() => {
                         setSelectedService(null);
-                        document.getElementById('estimator')?.scrollIntoView({ behavior: 'smooth' });
+                        document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
                       }}
                       className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-3.5 font-mono text-[10px] sm:text-[11px] font-bold tracking-[0.18em] uppercase border border-[#E0B9A0] bg-[#E0B9A0] text-[#2D2926] hover:bg-white hover:border-white rounded-full transition-all cursor-pointer text-center active:scale-95 shadow-lg"
                     >

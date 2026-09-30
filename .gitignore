@@ -1,11 +1,33 @@
+# Dependencies
 node_modules/
 temp-clone/
-.gemini/
-.vscode/
+
+# Build and IDE
 dist/
+.vscode/
+.gemini/
+.idea/
+
+# Environment Variables & Secrets (Local only, never commit)
 .env
+.env.*
+!.env.example
+*.local
+*.secret
+*.pem
+*.key
+
+# Firebase & Cloud Credentials
 firebase-applet-config.json
 firebase-blueprint.json
 .netlify/
+.assistant_data/
+
+# System files
 .DS_Store
 Thumbs.db
+
+# Agent & Scratch assets
+.agents/
+/*.webp
+

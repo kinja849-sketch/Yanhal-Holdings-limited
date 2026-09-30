@@ -10,13 +10,14 @@ import Process from "./components/Process";
 import Portfolio from "./components/Portfolio";
 import RestorationSlider from "./components/RestorationSlider";
 import Testimonials from "./components/Testimonials";
-import Estimator from "./components/Estimator";
-import Contact from "./components/Contact";
+import LatestUpdates from "./components/LatestUpdates";
+import StartProject from "./components/StartProject";
 import Footer from "./components/Footer";
 import FeatureSection from "./components/FeatureSection";
 import ScrollTimeline from "./components/ScrollTimeline";
 import FluidLineLoop from "./components/FluidLineLoop";
 import CinematicTransition from "./components/CinematicTransition";
+import YanhalBot from "./components/YanhalBot";
 import { transitionManager } from "./lib/transitionManager";
 import { gsap, useGSAP, ScrollTrigger } from "./lib/gsap";
 
@@ -223,6 +224,9 @@ export default function App() {
       {/* Full-Viewport Reference-Style Cinematic Fluid Sweep Navigation Layer */}
       <CinematicTransition />
 
+      {/* Sitewide Movable Conversational Assistant: YanhalBot */}
+      <YanhalBot />
+
       {/* Isolated Dedicated Preloader Screen */}
       <Preloader
         onComplete={() => {
@@ -352,15 +356,15 @@ export default function App() {
         </div>
         <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
-        {/* 11. Interactive Estimator */}
-        <div id="panel-estimator" className="section-panel panel section-panel-elevated relative z-[92] bg-[#2D2926]">
-          <Estimator />
+        {/* 11. Latest Updates & Social Drops */}
+        <div id="panel-updates" className="section-panel panel section-panel-elevated relative z-[92] bg-[#181514]">
+          <LatestUpdates />
         </div>
         <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
-        {/* 12. Contact */}
+        {/* 12. Start Your Project & Dynamic Estimator */}
         <div id="panel-contact" className="section-panel panel section-panel-elevated relative z-[94] bg-[#2D2926]">
-          <Contact />
+          <StartProject />
         </div>
 
         {/* 13. Footer */}

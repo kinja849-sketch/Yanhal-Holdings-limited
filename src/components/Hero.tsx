@@ -271,12 +271,12 @@ export default function Hero({ startEntrance = true }: HeroProps) {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-5 w-auto max-w-full px-4 sm:px-0">
           {/* Primary CTA: Aroclux Warm Sandstone Peach Fill */}
           <a
-            href="#estimator"
+            href="#contact"
             onClick={(e) => {
               e.preventDefault();
               transitionManager.transitionTo({
-                destination: "#estimator",
-                label: "PROJECT ESTIMATOR",
+                destination: "#contact",
+                label: "START YOUR PROJECT",
               });
             }}
             className="hero-cta-btn btn-fill-hover group w-auto inline-flex items-center justify-center gap-2.5 sm:gap-3 px-6 sm:px-8 py-2.5 sm:py-3.5 min-h-[44px] sm:min-h-[48px] rounded-full border border-[#E0B9A0] bg-[#E0B9A0] text-[#2D2926] hover:bg-[#FAF8F5] hover:border-[#FAF8F5] text-[10px] sm:text-[11px] font-mono font-bold tracking-[0.16em] sm:tracking-[0.22em] uppercase shadow-[0_4px_20px_rgba(0,0,0,0.4),0_0_20px_rgba(224,185,160,0.3)] active:scale-[0.97] transition-all duration-300 shrink-0"

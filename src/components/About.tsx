@@ -222,11 +222,11 @@ export default function About() {
                   <button 
                     onClick={() => {
                       setIsModalOpen(false);
-                      document.getElementById('estimator')?.scrollIntoView({ behavior: 'smooth' });
+                      document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
                     }}
                     className="bg-[#E0B9A0] text-[#2D2926] px-8 sm:px-12 py-4 sm:py-5 font-display text-[9px] sm:text-[10px] font-bold tracking-[0.3em] sm:tracking-[0.4em] uppercase hover:bg-white transition-all cursor-pointer w-full sm:w-auto rounded-full"
                   >
-                    Start Your Estimate
+                    Start Your Project
                   </button>
                 </div>
               </div>

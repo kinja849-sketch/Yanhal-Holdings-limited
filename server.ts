@@ -8,6 +8,12 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { VERIFICATION_TEMPLATE, CONTACT_TEMPLATE, ESTIMATE_TEMPLATE } from "./src/emailTemplates.js";
+import { orchestrateAssistant } from "./src/lib/assistantOrchestrator.js";
+import { assistantStorage } from "./src/lib/assistantStorage.js";
+import { searchPlaces } from "./src/lib/placesService.js";
+import { checkGenuineAvailability } from "./src/lib/calendarService.js";
+import { metricsService } from "./src/lib/metricsService.js";
+import { getInstagramFeed, refreshInstagramToken } from "./src/lib/instagramBackend.js";
 
 dotenv.config();
 
@@ -137,6 +143,293 @@ async function startServer() {
     } catch (error) {
       console.error("Error sending estimate email:", error);
       res.status(500).json({ error: "Failed to send email" });
+    }
+  });
+
+  // Assistant Sitewide Conversational API Routes
+  app.post("/api/assistant/chat", async (req, res) => {
+    try {
+      const { anonymousSessionId, message, mode, visitorContact, confirmedAction } = req.body;
+      if (!anonymousSessionId && !visitorContact?.email) {
+        return res.status(400).json({ error: "Missing session or contact identity" });
+      }
+
+      const response = await orchestrateAssistant({
+        anonymousSessionId: anonymousSessionId || `anon_${Date.now()}`,
+        message: message || "",
+        mode: mode || "text",
+        visitorContact,
+        confirmedAction,
+      });
+
+      let audioBase64: string | undefined;
+      if (mode === "voice" && response.reply && process.env.OPENAI_API_KEY) {
+        try {
+          const cleanSpeechText = response.reply
+            .replace(/[#*_~`]/g, "")
+            .replace(/https?:\/\/\S+/g, "our website")
+            .slice(0, 500);
+
+          const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "tts-1",
+              input: cleanSpeechText,
+              voice: "nova",
+              speed: 1.05,
+            }),
+            signal: AbortSignal.timeout(5000),
+          });
+
+          if (ttsRes.ok) {
+            const buf = await ttsRes.arrayBuffer();
+            audioBase64 = Buffer.from(buf).toString("base64");
+          }
+        } catch (ttsErr) {
+          console.warn("[Assistant Chat] Inline TTS generation notice:", ttsErr);
+        }
+      }
+
+      res.json({ success: true, ...response, audioBase64 });
+    } catch (error: any) {
+      console.error("[Assistant API Error]:", error);
+      res.status(500).json({ 
+        success: false, 
+        reply: "I encountered a momentary issue processing that request. Please try again or reach our Nairobi headquarters directly at +254 724 093256." 
+      });
+    }
+  });
+
+  app.post("/api/assistant/upload", upload.single("file"), async (req, res) => {
+    try {
+      const file = req.file;
+      const { visitorId, enquiryId } = req.body;
+
+      if (!file || !visitorId) {
+        return res.status(400).json({ error: "Missing file or visitor ID" });
+      }
+
+      const safeFilename = `${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const uploadDir = path.resolve(__dirname, "../../.assistant_data/uploads");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(uploadDir, safeFilename), file.buffer);
+
+      const record = await assistantStorage.saveUploadedFile({
+        visitorId,
+        enquiryId,
+        fileName: file.originalname,
+        fileType: file.mimetype,
+        fileSize: file.size,
+        storagePath: `/uploads/${safeFilename}`,
+        aiDescription: `Client reference material (${file.mimetype}). Stored securely with access controls.`,
+      });
+
+      res.json({ success: true, file: record });
+    } catch (err: any) {
+      console.error("[Assistant Upload Error]:", err);
+      res.status(500).json({ error: "File upload failed" });
+    }
+  });
+
+  // Studio-grade Human Voice TTS endpoint powered by OpenAI
+  app.post("/api/assistant/tts", async (req, res) => {
+    try {
+      const { text, voice } = req.body;
+      if (!text || typeof text !== "string") {
+        return res.status(400).json({ error: "Missing text for speech generation" });
+      }
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "TTS key not configured" });
+      }
+
+      const cleanText = text
+        .replace(/[#*_~`]/g, "")
+        .replace(/https?:\/\/\S+/g, "our website")
+        .slice(0, 1000);
+
+      const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "tts-1",
+          input: cleanText,
+          voice: voice || "nova",
+          speed: 1.0,
+        }),
+      });
+
+      if (!ttsResponse.ok) {
+        const errBody = await ttsResponse.text();
+        console.error("[TTS API Error]:", ttsResponse.status, errBody);
+        return res.status(ttsResponse.status).json({ error: "TTS generation failed" });
+      }
+
+      const buffer = Buffer.from(await ttsResponse.arrayBuffer());
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Content-Length", buffer.length);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(buffer);
+    } catch (err: any) {
+      console.error("[TTS Endpoint Error]:", err);
+      res.status(500).json({ error: err.message || "Failed to generate speech" });
+    }
+  });
+
+  app.post("/api/assistant/places", async (req, res) => {
+    try {
+      const { query } = req.body;
+      const places = await searchPlaces(query || "");
+      res.json({ success: true, places });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/assistant/availability", async (req, res) => {
+    try {
+      const date = req.query.date as string | undefined;
+      const result = await checkGenuineAvailability(date);
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/assistant/appointment", async (req, res) => {
+    try {
+      const { visitorId, enquiryId, slotTime, locationAddress, notes } = req.body;
+      if (!visitorId || !slotTime) {
+        return res.status(400).json({ error: "Missing visitor or slot time" });
+      }
+
+      const start = new Date(slotTime);
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+      const appt = await assistantStorage.createAppointment({
+        visitorId,
+        enquiryId,
+        startTime: start.toISOString(),
+        endTime: end.toISOString(),
+        locationAddress,
+        notes,
+      });
+
+      metricsService.recordBookingCompletion(appt.id, true);
+      res.json({ success: true, appointment: appt });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/assistant/concept", async (req, res) => {
+    try {
+      const { visitorId, enquiryId, prompt, confirm } = req.body;
+      if (!confirm) {
+        return res.status(400).json({ 
+          error: "Confirmation required", 
+          message: "Illustrative concepts require visitor confirmation before generation." 
+        });
+      }
+
+      const sampleImages = [
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&q=80&w=1200",
+      ];
+      const img = sampleImages[Math.floor(Math.random() * sampleImages.length)];
+
+      const concept = await assistantStorage.saveConceptImage({
+        visitorId,
+        enquiryId,
+        prompt: prompt || "Modern Kenyan architectural concept",
+        imageUrl: img,
+        isConfirmed: true,
+      });
+
+      res.json({ success: true, concept });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/assistant/correct-fact", async (req, res) => {
+    try {
+      const { visitorId, enquiryId, factKey, correctedValue } = req.body;
+      if (!visitorId || !factKey || !correctedValue) {
+        return res.status(400).json({ error: "Missing required correction parameters" });
+      }
+
+      const fact = await assistantStorage.recordFact(
+        visitorId, 
+        factKey, 
+        correctedValue, 
+        'corrected_by_visitor', 
+        enquiryId, 
+        'Corrected by visitor in chat interface'
+      );
+
+      // Also update enquiry if relevant
+      if (enquiryId) {
+        const updateMap: Record<string, string> = {
+          location: 'location_name',
+          size: 'size_sqm',
+          scope: 'scope',
+          timeline: 'timeline',
+          objective: 'objective',
+        };
+        if (updateMap[factKey]) {
+          await assistantStorage.updateProjectEnquiry(enquiryId, { [updateMap[factKey]]: correctedValue });
+        }
+      }
+
+      res.json({ success: true, fact });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/assistant/owner-data", async (req, res) => {
+    try {
+      const data = await assistantStorage.getOwnerDashboardData();
+      res.json({ success: true, data });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/assistant/metrics", (req, res) => {
+    res.json({ success: true, metrics: metricsService.getReport() });
+  });
+
+  // Instagram Live Feed Endpoint (with in-memory caching, error resilience & Netlify compatibility)
+  app.get(["/api/instagram/posts", "/.netlify/functions/instagram"], async (req, res) => {
+    try {
+      const forceRefresh = req.query.refresh === "true";
+      const feed = await getInstagramFeed(forceRefresh);
+      res.json(feed);
+    } catch (err: any) {
+      console.error("[Instagram API Route Error]:", err);
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch Instagram feed" });
+    }
+  });
+
+  app.post("/api/instagram/refresh", async (_req, res) => {
+    try {
+      const result = await refreshInstagramToken();
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
     }
   });
 

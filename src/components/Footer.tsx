@@ -63,8 +63,8 @@ export default function Footer() {
                 { name: "About Us", href: "#about", label: "04 · ABOUT US" },
                 { name: "Our Projects", href: "#portfolio", label: "03 · SELECTED WORKS" },
                 { name: "Process", href: "#process", label: "BLUEPRINT PROCESS" },
-                { name: "Estimator", href: "#estimator", label: "PROJECT ESTIMATOR" },
-                { name: "Contact", href: "#contact", label: "05 · CONSULTATIONS" }
+                { name: "Start Project", href: "#contact", label: "START YOUR PROJECT" },
+                { name: "Latest Updates", href: "#updates", label: "LATEST UPDATES" }
               ].map((nav, idx) => (
                 <li key={idx}>
                   <a 
