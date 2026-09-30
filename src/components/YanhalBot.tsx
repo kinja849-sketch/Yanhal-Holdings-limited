@@ -34,6 +34,10 @@ export default function YanhalBot() {
   const [showOwnerView, setShowOwnerView] = useState(false);
   const [ownerData, setOwnerData] = useState<any>(null);
 
+  // Mobile viewport tracking for dynamic browser chrome & virtual keyboard
+  const [isMobile, setIsMobile] = useState(false);
+  const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
+
   const isVoiceToVoiceRef = useRef(isVoiceToVoice);
   useEffect(() => {
     isVoiceToVoiceRef.current = isVoiceToVoice;
@@ -78,6 +82,47 @@ export default function YanhalBot() {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
   }, [messages, isLoading, currentProgress]);
+
+  // Dynamic mobile viewport and keyboard tracking
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const updateMobileViewport = () => {
+      const mobile = window.innerWidth < 640;
+      setIsMobile(mobile);
+      if (mobile && window.visualViewport) {
+        setVisualViewportHeight(window.visualViewport.height);
+      } else {
+        setVisualViewportHeight(null);
+      }
+    };
+
+    updateMobileViewport();
+
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", updateMobileViewport);
+      vv.addEventListener("scroll", updateMobileViewport);
+    }
+    window.addEventListener("resize", updateMobileViewport);
+    window.addEventListener("orientationchange", updateMobileViewport);
+
+    return () => {
+      if (vv) {
+        vv.removeEventListener("resize", updateMobileViewport);
+        vv.removeEventListener("scroll", updateMobileViewport);
+      }
+      window.removeEventListener("resize", updateMobileViewport);
+      window.removeEventListener("orientationchange", updateMobileViewport);
+    };
+  }, [isOpen]);
+
+  // Re-scroll to bottom if messages exist when viewport resizes (e.g. virtual keyboard opens)
+  useEffect(() => {
+    if (chatScrollRef.current && messages.length > 0) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [visualViewportHeight]);
 
   // Lock background scroll and pause Lenis engine when modal is active
   useEffect(() => {
@@ -562,7 +607,7 @@ export default function YanhalBot() {
             data-lenis-prevent="true"
             onWheel={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
-            className="fixed inset-0 z-[10000] flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm overflow-hidden"
           >
             <motion.div
               data-lenis-prevent="true"
@@ -570,10 +615,18 @@ export default function YanhalBot() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 16 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="relative w-full h-full sm:h-[88vh] sm:max-w-4xl bg-[#FAF8F5] text-[#2D2926] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-black/10"
+              style={
+                isMobile && visualViewportHeight
+                  ? {
+                      height: `${visualViewportHeight}px`,
+                      maxHeight: `${visualViewportHeight}px`,
+                    }
+                  : undefined
+              }
+              className="bot-mobile-modal relative w-full h-[100dvh] sm:h-[88vh] max-h-[100dvh] sm:max-h-[88vh] sm:max-w-4xl bg-[#FAF8F5] text-[#2D2926] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden border-0 sm:border border-black/10"
             >
               {/* Header Bar: Increased logo SVG size + reads strictly 'Bot' beside it */}
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-black/5 bg-white/70 backdrop-blur-md shrink-0">
+              <div className="bot-mobile-header flex items-center justify-between px-5 py-3.5 border-b border-black/5 bg-white/70 backdrop-blur-md shrink-0">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-[#181514] p-1.5 flex items-center justify-center shadow-inner">
                     <YanhalLogoSvg className="w-full h-full" />
@@ -614,7 +667,7 @@ export default function YanhalBot() {
                 /* ========================================================================= */
                 /* 3. VOICE-TO-VOICE TWO-WAY CONVERSATION SECTION (White background & 3D Bot)*/
                 /* ========================================================================= */
-                <div className="flex-1 flex flex-col items-center justify-between p-6 sm:p-10 bg-white text-neutral-900 relative">
+                <div className="flex-1 min-h-0 flex flex-col items-center justify-between p-5 sm:p-10 bg-white text-neutral-900 relative overflow-y-auto">
                   {/* Top Bar: Clean minimal navigation */}
                   <div className="flex items-center justify-end w-full">
                     <button
@@ -682,7 +735,7 @@ export default function YanhalBot() {
                   </div>
 
                   {/* Bottom Controls: Clean Cancel Button indicating an X */}
-                  <div className="flex items-center justify-center w-full pt-4 pb-2">
+                  <div className="bot-mobile-voice-bottom flex items-center justify-center w-full pt-4 pb-2 shrink-0">
                     <button
                       type="button"
                       onClick={cancelVoiceMode}
@@ -701,7 +754,7 @@ export default function YanhalBot() {
                 /* ========================================================================= */
                 /* 4. CHATGPT-STYLE TEXT CHAT SECTION                                        */
                 /* ========================================================================= */
-                <div className="flex-1 flex flex-col justify-between overflow-hidden relative">
+                <div className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden relative">
                   {/* Messages Area */}
                   <div
                     ref={chatScrollRef}
@@ -709,20 +762,20 @@ export default function YanhalBot() {
                     onWheel={(e) => e.stopPropagation()}
                     onTouchMove={(e) => e.stopPropagation()}
                     style={{ overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
-                    className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-6"
+                    className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6"
                   >
                     {messages.length === 0 ? (
                       /* Zero state: strictly matches screenshot "Ready when you are." */
-                      <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center select-none">
+                      <div className="min-h-full my-auto flex flex-col items-center justify-center text-center select-none py-3 sm:py-0">
                         <h2 className="text-3xl sm:text-4xl font-normal text-neutral-800 tracking-tight mb-2">
                           Ready when you are.
                         </h2>
-                        <p className="text-sm text-neutral-500 max-w-sm leading-relaxed">
+                        <p className="text-sm text-neutral-500 max-w-sm leading-relaxed px-2 sm:px-0">
                           Ask about project estimates, blueprint process, our services, or explore completed works.
                         </p>
 
                         {/* Quick Prompts */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-8 max-w-md w-full">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-5 sm:mt-8 max-w-md w-full">
                           {[
                             "Estimate a 200 sqm residential project",
                             "What is your Blueprint Process?",
@@ -732,7 +785,7 @@ export default function YanhalBot() {
                             <button
                               key={idx}
                               onClick={() => handleSend(prompt, "text")}
-                              className="text-left text-xs text-neutral-600 bg-white hover:bg-neutral-100 border border-neutral-200 p-3 rounded-xl transition-all shadow-sm"
+                              className="text-left text-xs text-neutral-600 bg-white hover:bg-neutral-100 border border-neutral-200 p-3 rounded-xl transition-all shadow-sm active:scale-[0.99] touch-manipulation"
                             >
                               {prompt}
                             </button>
@@ -958,7 +1011,7 @@ export default function YanhalBot() {
                   )}
 
                   {/* ChatGPT-style Input Bar (strictly matches user's screenshot) */}
-                  <div className="p-4 sm:p-6 bg-white border-t border-neutral-200/80 shrink-0">
+                  <div className="bot-mobile-input-bar p-3.5 sm:p-6 bg-white border-t border-neutral-200/80 shrink-0">
                     <div className="relative max-w-3xl mx-auto flex items-center bg-[#F4F4F4] hover:bg-[#EEEEEE] focus-within:bg-white rounded-full border border-neutral-200 focus-within:border-neutral-400 focus-within:shadow-md transition-all px-3 py-1.5">
                       {/* Plus icon on far left for image upload */}
                       <button
@@ -979,6 +1032,15 @@ export default function YanhalBot() {
                         type="text"
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
+                        onFocus={() => {
+                          if (typeof window !== "undefined" && window.innerWidth < 640) {
+                            setTimeout(() => {
+                              if (chatScrollRef.current) {
+                                chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+                              }
+                            }, 200);
+                          }
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
@@ -986,7 +1048,7 @@ export default function YanhalBot() {
                           }
                         }}
                         placeholder="Ask YanhalBot"
-                        className="flex-1 bg-transparent border-none outline-none px-3 py-2 text-sm text-neutral-800 placeholder-neutral-500"
+                        className="flex-1 bg-transparent border-none outline-none px-3 py-2 text-base sm:text-sm text-neutral-800 placeholder-neutral-500"
                       />
 
                       {/* Instant selector chip */}

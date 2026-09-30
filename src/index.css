@@ -680,3 +680,28 @@ button.chr-hover {
 .animate-eq-3 { animation: eqBounce3 0.95s ease-in-out infinite 0.3s; }
 .animate-eq-4 { animation: eqBounce4 0.78s ease-in-out infinite 0.2s; }
 
+/* ========================================================================= */
+/* YANHALBOT MOBILE REFINEMENTS (Strictly scoped to < 640px)                  */
+/* ========================================================================= */
+@media (max-width: 639px) {
+  .bot-mobile-modal {
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: none;
+  }
+  .bot-mobile-header {
+    padding-top: calc(0.875rem + env(safe-area-inset-top, 0px)) !important;
+    padding-left: calc(1.25rem + env(safe-area-inset-left, 0px)) !important;
+    padding-right: calc(1.25rem + env(safe-area-inset-right, 0px)) !important;
+  }
+  .bot-mobile-input-bar {
+    padding-bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: calc(0.875rem + env(safe-area-inset-left, 0px)) !important;
+    padding-right: calc(0.875rem + env(safe-area-inset-right, 0px)) !important;
+  }
+  .bot-mobile-voice-bottom {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
