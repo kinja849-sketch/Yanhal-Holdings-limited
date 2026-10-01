@@ -139,18 +139,158 @@ export default function App() {
     };
   }, [isLoaded]);
 
-  // Seamless fluid section flow across all screens without artificial pin gaps or flicker
+  // Coordinated GSAP Section Transition System — Horeca-Inspired Continuous Cinematic Flow
   useGSAP(
     () => {
       if (!isLoaded) return;
 
-      const panels = gsap.utils.toArray<HTMLElement>(".section-panel");
-      panels.forEach((panel) => {
-        gsap.set(panel, {
-          scale: 1,
-          opacity: 1,
-          y: 0,
-          clearProps: "transform,opacity",
+      const mm = gsap.matchMedia();
+
+      // Desktop & Large Screens (min-width: 1024px): Layered Pinning, Outgoing Recession & Incoming Reveals
+      mm.add("(min-width: 1024px) and (prefers-reduced-motion: no-preference)", () => {
+        const panels = gsap.utils.toArray<HTMLElement>(".section-panel");
+        if (panels.length <= 1) return;
+
+        panels.forEach((panel, i) => {
+          const nextPanel = panels[i + 1];
+          if (!nextPanel) return;
+
+          // Leave Contact and Footer in natural fluid flow so form submission and footer links are fully accessible
+          if (panel.id === "panel-contact" || panel.id === "panel-footer") return;
+
+          // Target next layer: for panel-portfolio, the next layer is the RestorationSlider showreel (#panel-rebirth)
+          const targetNext =
+            panel.id === "panel-portfolio"
+              ? (document.getElementById("panel-rebirth") as HTMLElement) || nextPanel
+              : nextPanel;
+
+          // Check if current panel is taller than viewport (with tolerance).
+          // Viewport panels pin at 'top top', while tall panels pin once the user has scrolled
+          // through their entire content ('bottom bottom'), ensuring zero distortion or cutoff.
+          const isTall = () => panel.offsetHeight > window.innerHeight + 40;
+
+          // 1. Layered Pinning ScrollTrigger:
+          // Pinned with pinSpacing: false so subsequent panel glides over it
+          ScrollTrigger.create({
+            trigger: panel,
+            start: () => (isTall() ? "bottom bottom" : "top top"),
+            endTrigger: targetNext,
+            end: "top top",
+            pin: true,
+            pinSpacing: false,
+            invalidateOnRefresh: true,
+          });
+
+          // 2. Outgoing Panel Recession:
+          // Animate the inner content rather than the pinned panel itself to avoid
+          // transform conflicts with ScrollTrigger's pin positioning.
+          // Gently scales down (0.965), recedes with y-parallax (-24px), and soft-dims (0.88).
+          const content = (panel.firstElementChild as HTMLElement) || panel;
+          gsap.to(content, {
+            scale: 0.965,
+            opacity: 0.88,
+            y: -24,
+            transformOrigin: "center 30%",
+            ease: "none",
+            scrollTrigger: {
+              trigger: targetNext,
+              start: "top bottom",
+              end: "top top",
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
+          });
+        });
+
+        // 3. Incoming Panel Typography & Supporting Visual Discovery:
+        // Deliberately paced reveals for primary statements and cards as each layer reaches the viewport
+        panels.forEach((panel) => {
+          if (panel.id === "panel-hero" || panel.id === "panel-footer") return;
+
+          // Primary heading zoom & reveal: modest y-offset, scale 0.94 -> 1.0, soft opacity ramp
+          const heading = panel.querySelector("h1, h2, h3") as HTMLElement | null;
+          if (heading && !heading.closest("[data-animated-heading]")) {
+            gsap.fromTo(
+              heading,
+              {
+                opacity: 0,
+                y: 30,
+                scale: 0.94,
+              },
+              {
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                duration: 0.85,
+                ease: "power3.out",
+                scrollTrigger: {
+                  trigger: panel,
+                  start: "top 78%",
+                  toggleActions: "play none none reverse",
+                },
+              }
+            );
+          }
+
+          // Supporting cards and images gentle scale from 0.96 to 1.0 and soft opacity ramp
+          const cards = panel.querySelectorAll<HTMLElement>(
+            ".service-card, .aspect-\\[4\\/5\\], article"
+          );
+          if (cards.length > 0) {
+            gsap.fromTo(
+              cards,
+              {
+                opacity: 0.35,
+                scale: 0.96,
+                y: 20,
+              },
+              {
+                opacity: 1,
+                scale: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.08,
+                ease: "power2.out",
+                scrollTrigger: {
+                  trigger: panel,
+                  start: "top 70%",
+                  toggleActions: "play none none reverse",
+                },
+              }
+            );
+          }
+        });
+      });
+
+      // Mobile & Tablet: Fluid non-pinning layout for seamless touch performance
+      mm.add("(max-width: 1023px)", () => {
+        const panels = gsap.utils.toArray<HTMLElement>(".section-panel");
+        panels.forEach((panel) => {
+          gsap.set(panel, {
+            scale: 1,
+            opacity: 1,
+            y: 0,
+            clearProps: "transform,opacity",
+          });
+          const content = panel.firstElementChild as HTMLElement | null;
+          if (content) {
+            gsap.set(content, {
+              scale: 1,
+              opacity: 1,
+              y: 0,
+              clearProps: "transform,opacity",
+            });
+          }
+        });
+      });
+
+      // Reduced motion fallback
+      mm.add("(prefers-reduced-motion: reduce)", () => {
+        const panels = gsap.utils.toArray<HTMLElement>(".section-panel");
+        panels.forEach((panel) => {
+          gsap.set(panel, { clearProps: "all" });
+          const content = panel.firstElementChild as HTMLElement | null;
+          if (content) gsap.set(content, { clearProps: "all" });
         });
       });
     },
@@ -202,21 +342,25 @@ export default function App() {
         <div id="panel-hero" className="section-panel panel relative z-10 bg-[#080809]">
           <Hero startEntrance={isLoaded} />
         </div>
+        <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
         {/* 02. What We Do / Capabilities */}
         <div id="panel-capabilities" className="section-panel panel section-panel-elevated relative z-20 bg-[#FAF8F5]">
           <WhatWeDo />
         </div>
+        <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
         {/* 03. About */}
         <div id="panel-about" className="section-panel panel section-panel-elevated relative z-30 bg-[#2D2926]">
           <About />
         </div>
+        <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
         {/* 04. Leadership */}
         <div id="panel-leadership" className="section-panel panel section-panel-elevated relative z-40 bg-[#2D2926]">
           <Leadership />
         </div>
+        <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
         {/* 05 & 06 Connected Span with Continuous Fluid Drawing Line Loop */}
         <div className="relative w-full">
@@ -228,6 +372,7 @@ export default function App() {
           <div id="panel-services" className="section-panel panel section-panel-elevated relative z-50 bg-[#FAF8F5]">
             <Services />
           </div>
+          <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
           {/* 06. Industrial & Commercial Engineering */}
           <div id="panel-feature-industrial" className="section-panel panel section-panel-elevated relative z-60 bg-[#FAF8F5]">
@@ -246,11 +391,13 @@ export default function App() {
             />
           </div>
         </div>
+        <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
         {/* 07. Blueprint Process */}
         <div id="panel-process" className="section-panel panel section-panel-elevated relative z-70 bg-[#2D2926]">
           <Process />
         </div>
+        <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
         {/* 08. Interior Finishing & Optimization */}
         <div id="panel-feature-interior" className="section-panel panel section-panel-elevated relative z-80 bg-[#FAF8F5]">
@@ -269,11 +416,13 @@ export default function App() {
             animatedGallery
           />
         </div>
+        <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
         {/* 09. Portfolio Showcase */}
         <div id="panel-portfolio" className="section-panel panel section-panel-elevated relative z-[85] bg-[#2D2926]">
           <Portfolio />
         </div>
+        <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
         {/* Arts of Rebirth - Cinematic Showreel */}
         <div id="panel-rebirth" className="relative z-[87] bg-[#080809]">
@@ -284,11 +433,13 @@ export default function App() {
         <div id="panel-testimonials" className="section-panel panel section-panel-elevated relative z-[90] bg-[#FAF8F5]">
           <Testimonials />
         </div>
+        <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
         {/* 11. Latest Updates & Social Drops */}
         <div id="panel-updates" className="section-panel panel section-panel-elevated relative z-[92] bg-[#181514]">
           <LatestUpdates />
         </div>
+        <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
         {/* 12. Start Your Project & Dynamic Estimator */}
         <div id="panel-contact" className="section-panel panel section-panel-elevated relative z-[94] bg-[#2D2926]">

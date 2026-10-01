@@ -809,3 +809,35 @@ button.chr-hover {
   color: var(--color-transition-dark);
 }
 
+/* ================= TESTIMONIALS STACKED CARDS SYSTEM ================= */
+.card-wrapper {
+  width: 100%;
+  perspective: 500px;
+  margin-bottom: 50px;
+}
+
+.card-wrapper:last-child {
+  margin-bottom: 0;
+}
+
+.cards {
+  width: 100%;
+  max-width: 750px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+@media (min-width: 768px) {
+  .cards {
+    width: 80%;
+    padding: 0 30px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .cards {
+    width: 70%;
+    padding: 0 50px;
+  }
+}
+

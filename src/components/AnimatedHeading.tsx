@@ -32,12 +32,14 @@ export default function AnimatedHeading({
         {
           opacity: 0,
           y: distance,
+          scale: 0.94,
           filter: "blur(10px)",
           rotateX: -10,
         },
         {
           opacity: 1,
           y: 0,
+          scale: 1,
           filter: "blur(0px)",
           rotateX: 0,
           duration,

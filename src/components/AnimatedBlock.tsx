@@ -39,8 +39,8 @@ export default function AnimatedBlock({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: distance }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: distance, scale: 0.97 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, margin }}
       transition={{
         duration,

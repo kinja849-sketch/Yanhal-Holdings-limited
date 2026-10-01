@@ -110,7 +110,7 @@ export default function Hero({ startEntrance = true }: HeroProps) {
             "-=0.35"
           );
 
-        // ScrollTrigger: Natural depth response as user scrolls down
+        // ScrollTrigger: Natural cinematic depth recession as user scrolls down
         gsap.to(titleContainerRef.current, {
           scrollTrigger: {
             trigger: heroRef.current,
@@ -118,11 +118,25 @@ export default function Hero({ startEntrance = true }: HeroProps) {
             end: "bottom top",
             scrub: 0.8,
           },
-          yPercent: 18,
-          opacity: 0.4,
-          scale: 0.98,
+          yPercent: 16,
+          opacity: 0.35,
+          scale: 0.94,
           ease: "none",
         });
+
+        if (videoRef.current) {
+          gsap.to(videoRef.current, {
+            scrollTrigger: {
+              trigger: heroRef.current,
+              start: "top top",
+              end: "bottom top",
+              scrub: 0.8,
+            },
+            scale: 0.96,
+            opacity: 0.65,
+            ease: "none",
+          });
+        }
       });
 
       mm.add("(prefers-reduced-motion: reduce)", () => {

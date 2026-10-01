@@ -17,6 +17,14 @@ import { getInstagramFeed, refreshInstagramToken } from "./src/lib/instagramBack
 
 dotenv.config();
 
+// Global crash resilience handlers
+process.on('uncaughtException', (err) => {
+  console.error('[Server Uncaught Exception]:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Server Unhandled Rejection]:', reason);
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
