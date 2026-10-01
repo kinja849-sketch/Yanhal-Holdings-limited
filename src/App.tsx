@@ -139,77 +139,18 @@ export default function App() {
     };
   }, [isLoaded]);
 
-  // Coordinated GSAP Section Transition System — Varied Scroll Choreography
+  // Seamless fluid section flow across all screens without artificial pin gaps or flicker
   useGSAP(
     () => {
       if (!isLoaded) return;
 
-      const mm = gsap.matchMedia();
-
-      // Desktop & Large Screens: Layered Pinning & Varied Scroll Choreography
-      mm.add("(min-width: 1024px) and (prefers-reduced-motion: no-preference)", () => {
-        const panels = gsap.utils.toArray<HTMLElement>(".section-panel");
-        if (panels.length <= 1) return;
-
-        // Iterate through all panels except the final conversion/footer sections
-        panels.forEach((panel, i) => {
-          const nextPanel = panels[i + 1];
-          if (!nextPanel) return;
-
-          // Leave Contact and Footer in natural fluid flow so form submission and footer links are fully accessible
-          if (panel.id === "panel-contact" || panel.id === "panel-footer") return;
-
-          // Check if current panel is taller than viewport (with 50px tolerance)
-          // Viewport panels pin at 'top top', while tall panels pin once the user has scrolled
-          // through their entire content ('bottom bottom'), ensuring zero distortion or cutoff.
-          const isTall = () => panel.offsetHeight > window.innerHeight + 50;
-
-          const targetNext =
-            panel.id === "panel-portfolio"
-              ? (document.getElementById("panel-rebirth") as HTMLElement) || nextPanel
-              : nextPanel;
-
-          // 1. Layered Pinning ScrollTrigger:
-          // Pinned with pinSpacing: false so subsequent panel glides over it
-          ScrollTrigger.create({
-            trigger: panel,
-            start: () => (isTall() ? "bottom bottom" : "top top"),
-            endTrigger: targetNext,
-            end: "top top",
-            pin: true,
-            pinSpacing: false,
-            invalidateOnRefresh: true,
-          });
-
-          // 2. Varied Scroll Choreography:
-          // As the next section slides up over the current pinned panel,
-          // the outgoing panel subtly recedes with architectural depth (scale, opacity, y-parallax)
-          gsap.to(panel, {
-            scale: 0.965,
-            opacity: 0.88,
-            y: -25,
-            ease: "none",
-            scrollTrigger: {
-              trigger: targetNext,
-              start: "top bottom",
-              end: "top top",
-              scrub: true,
-              invalidateOnRefresh: true,
-            },
-          });
-        });
-      });
-
-      // Mobile & Tablet: Fluid non-pinning layout for seamless touch performance
-      mm.add("(max-width: 1023px)", () => {
-        const panels = gsap.utils.toArray<HTMLElement>(".section-panel");
-        panels.forEach((panel) => {
-          gsap.set(panel, {
-            scale: 1,
-            opacity: 1,
-            y: 0,
-            clearProps: "transform,opacity",
-          });
+      const panels = gsap.utils.toArray<HTMLElement>(".section-panel");
+      panels.forEach((panel) => {
+        gsap.set(panel, {
+          scale: 1,
+          opacity: 1,
+          y: 0,
+          clearProps: "transform,opacity",
         });
       });
     },
@@ -257,30 +198,25 @@ export default function App() {
       >
         <ScrollTimeline />
 
-        {/* Architectural Section Dwell Spacer: Desktop-only scroll buffer ensuring previous section is fully displayed before next section layers over */}
         {/* 01. Hero */}
         <div id="panel-hero" className="section-panel panel relative z-10 bg-[#080809]">
           <Hero startEntrance={isLoaded} />
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
         {/* 02. What We Do / Capabilities */}
         <div id="panel-capabilities" className="section-panel panel section-panel-elevated relative z-20 bg-[#FAF8F5]">
           <WhatWeDo />
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
         {/* 03. About */}
         <div id="panel-about" className="section-panel panel section-panel-elevated relative z-30 bg-[#2D2926]">
           <About />
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
         {/* 04. Leadership */}
         <div id="panel-leadership" className="section-panel panel section-panel-elevated relative z-40 bg-[#2D2926]">
           <Leadership />
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none bg-[#2D2926]" aria-hidden="true" />
 
         {/* 05 & 06 Connected Span with Continuous Fluid Drawing Line Loop */}
         <div className="relative w-full">
@@ -292,7 +228,6 @@ export default function App() {
           <div id="panel-services" className="section-panel panel section-panel-elevated relative z-50 bg-[#FAF8F5]">
             <Services />
           </div>
-          <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
           {/* 06. Industrial & Commercial Engineering */}
           <div id="panel-feature-industrial" className="section-panel panel section-panel-elevated relative z-60 bg-[#FAF8F5]">
@@ -311,13 +246,11 @@ export default function App() {
             />
           </div>
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
         {/* 07. Blueprint Process */}
         <div id="panel-process" className="section-panel panel section-panel-elevated relative z-70 bg-[#2D2926]">
           <Process />
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
         {/* 08. Interior Finishing & Optimization */}
         <div id="panel-feature-interior" className="section-panel panel section-panel-elevated relative z-80 bg-[#FAF8F5]">
@@ -336,31 +269,26 @@ export default function App() {
             animatedGallery
           />
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
         {/* 09. Portfolio Showcase */}
         <div id="panel-portfolio" className="section-panel panel section-panel-elevated relative z-[85] bg-[#2D2926]">
           <Portfolio />
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
         {/* Arts of Rebirth - Cinematic Showreel */}
         <div id="panel-rebirth" className="relative z-[87] bg-[#080809]">
           <RestorationSlider />
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
         {/* 10. Testimonials */}
         <div id="panel-testimonials" className="section-panel panel section-panel-elevated relative z-[90] bg-[#FAF8F5]">
           <Testimonials />
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
         {/* 11. Latest Updates & Social Drops */}
         <div id="panel-updates" className="section-panel panel section-panel-elevated relative z-[92] bg-[#181514]">
           <LatestUpdates />
         </div>
-        <div className="section-dwell-spacer hidden lg:block h-[42vh] pointer-events-none" aria-hidden="true" />
 
         {/* 12. Start Your Project & Dynamic Estimator */}
         <div id="panel-contact" className="section-panel panel section-panel-elevated relative z-[94] bg-[#2D2926]">

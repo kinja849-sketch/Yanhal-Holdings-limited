@@ -314,10 +314,6 @@ body {
 }
 
 @media (min-width: 1024px) {
-  .section-panel {
-    will-change: transform, opacity;
-  }
-
   /* Architectural subtle elevation shadow for layered panel entry */
   .section-panel-elevated {
     box-shadow: 0 -20px 40px -15px rgba(0, 0, 0, 0.45);

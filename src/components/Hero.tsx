@@ -123,19 +123,6 @@ export default function Hero({ startEntrance = true }: HeroProps) {
           scale: 0.98,
           ease: "none",
         });
-
-        // Controlled subtle contraction as user reaches transition threshold
-        gsap.to(heroRef.current, {
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: "bottom 85%",
-            end: "bottom top",
-            scrub: 0.6,
-          },
-          scale: 0.975,
-          opacity: 0.92,
-          ease: "power2.inOut",
-        });
       });
 
       mm.add("(prefers-reduced-motion: reduce)", () => {
