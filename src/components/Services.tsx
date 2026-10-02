@@ -1,5 +1,6 @@
+import { useState, useRef, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { useState } from "react";
+import { gsap, useGSAP, ScrollTrigger } from "../lib/gsap";
 import AnimatedBlock from "./AnimatedBlock";
 import { 
   BuildingOffice2Icon, 
@@ -162,19 +163,215 @@ const services: ServiceDetail[] = [
   }
 ];
 
+// Helper to compute responsive layout geometry matching Framer reference arc mathematics
+function computeLayout(width: number) {
+  let radius = 1008;
+  let itemWidth = 340;
+  let itemHeight = 460;
+  let spacing = 54;
+
+  if (width >= 1280) {
+    radius = 1008;
+    itemWidth = 340;
+    itemHeight = 460;
+    spacing = 54;
+  } else if (width >= 1024) {
+    radius = 960;
+    itemWidth = 320;
+    itemHeight = 450;
+    spacing = 46;
+  } else {
+    // Tablet (768px - 1023px)
+    radius = 870;
+    itemWidth = 300;
+    itemHeight = 430;
+    spacing = 40;
+  }
+
+  const i = Math.asin(Math.min(0.999, width / 2 / radius));
+  const a = (x: number, y: number, rad: number) =>
+    x * Math.sin(rad) + (y - radius) * Math.cos(rad) + radius;
+  const corners = [
+    a(0, 0, 0),
+    a(-itemWidth / 2, 0, i),
+    a(0, itemHeight, 0),
+    a(itemWidth / 2, itemHeight, i),
+  ];
+  const minY = Math.min(...corners);
+  const maxY = Math.max(...corners);
+  const totalHeight = Math.ceil(maxY - minY) + 20;
+  const topOffset = Math.ceil(-minY) + 10;
+
+  return {
+    radius,
+    itemWidth,
+    itemHeight,
+    spacing,
+    anglePerItem: 22.5, // 16 items perfectly complete 360°
+    totalHeight,
+    topOffset,
+  };
+}
+
 export default function Services() {
   const [selectedService, setSelectedService] = useState<ServiceDetail | null>(null);
 
+  const sectionRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cardDomRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // 4 repetitions of the 4 services creates 16 items around the 360° circular track
+  // creating a completely seamless, continuous, infinite feeling arc
+  const arcItems = useMemo(() => {
+    const repeats = 4;
+    const items: {
+      key: string;
+      service: ServiceDetail;
+      initialTheta: number;
+    }[] = [];
+
+    for (let r = 0; r < repeats; r++) {
+      services.forEach((service, idx) => {
+        items.push({
+          key: `${service.id}-r${r}`,
+          service,
+          initialTheta: (r * services.length + idx) * 22.5,
+        });
+      });
+    }
+    return items;
+  }, []);
+
+  const [layoutConfig, setLayoutConfig] = useState(() =>
+    computeLayout(typeof window !== "undefined" ? window.innerWidth : 1280)
+  );
+
+  // Function to position and rotate all cards along the arc
+  const renderCards = (currentOffset: number, config: ReturnType<typeof computeLayout>) => {
+    const startAngle = 0;
+    const totalSpan = 360;
+    const halfSpan = 180;
+
+    cardDomRefs.current.forEach((el, idx) => {
+      if (!el) return;
+      const item = arcItems[idx];
+      if (!item) return;
+
+      let angle = item.initialTheta + currentOffset;
+      // Cyclic modulo wrap into [-180, +180] relative to startAngle
+      angle =
+        (((angle - startAngle + halfSpan) % totalSpan + totalSpan) % totalSpan) +
+        startAngle -
+        halfSpan;
+
+      const distFromFocus = Math.abs(angle - startAngle);
+
+      if (distFromFocus > 115) {
+        if (el.style.display !== "none") el.style.display = "none";
+      } else {
+        if (el.style.display !== "block") el.style.display = "block";
+        el.style.transform = `rotate(${angle}deg)`;
+        const opacity = Math.max(0, 1 - Math.pow(distFromFocus / 110, 2.5));
+        el.style.opacity = opacity.toFixed(4);
+        el.style.zIndex = Math.round(100 - distFromFocus).toString();
+        el.style.pointerEvents = opacity > 0.35 ? "auto" : "none";
+      }
+    });
+  };
+
+  // Close modal with Escape key
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedService(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // GSAP ScrollTrigger pure scroll-driven sequence & section pinning (Desktop & Tablet only)
+  useGSAP(
+    () => {
+      const section = sectionRef.current;
+      const container = containerRef.current;
+      if (!section || !container) return;
+
+      const mm = gsap.matchMedia();
+
+      // Desktop & Tablet only (min-width: 768px): Arc layout + ScrollTrigger pin progression
+      mm.add("(min-width: 768px)", () => {
+        let currentLayout = computeLayout(container.offsetWidth || window.innerWidth);
+        setLayoutConfig(currentLayout);
+
+        // Initial placement: Card 01 is at the primary/focus position (0°)
+        renderCards(0, currentLayout);
+
+        // Total travel span: 3 card steps (from Card 01 to Card 04)
+        const totalRotationTravel = 3 * currentLayout.anglePerItem; // 67.5°
+        let lastProgress = 0;
+
+        // Pure scroll-driven sequence with section pinned
+        const trigger = ScrollTrigger.create({
+          trigger: section,
+          pin: true,
+          start: "top top",
+          end: () => `+=${Math.round(window.innerHeight * 2.2)}`,
+          scrub: 0.5,
+          invalidateOnRefresh: true,
+          anticipatePin: 1,
+          refreshPriority: 10,
+          onUpdate: (self) => {
+            lastProgress = self.progress;
+            // Progress mapping:
+            // 0.0 -> 0.82 advances from Card 01 to Card 04
+            // 0.82 -> 1.00 holds on Card 04 resting in the primary/focus position
+            // At 1.00, the pin releases and natural scroll continues to the next section
+            const clamped = Math.min(1, self.progress / 0.82);
+            const rotationOffset = -clamped * totalRotationTravel;
+            renderCards(rotationOffset, currentLayout);
+          },
+          onRefresh: () => {
+            currentLayout = computeLayout(container.offsetWidth || window.innerWidth);
+            setLayoutConfig(currentLayout);
+            const clamped = Math.min(1, lastProgress / 0.82);
+            const rotationOffset = -clamped * totalRotationTravel;
+            renderCards(rotationOffset, currentLayout);
+          },
+        });
+
+        const handleResize = () => {
+          currentLayout = computeLayout(container.offsetWidth || window.innerWidth);
+          setLayoutConfig(currentLayout);
+          const clamped = Math.min(1, lastProgress / 0.82);
+          const rotationOffset = -clamped * totalRotationTravel;
+          renderCards(rotationOffset, currentLayout);
+        };
+
+        window.addEventListener("resize", handleResize);
+
+        return () => {
+          window.removeEventListener("resize", handleResize);
+          trigger.kill();
+        };
+      });
+
+      return () => {
+        mm.revert();
+      };
+    },
+    { scope: sectionRef }
+  );
+
   return (
     <section 
+      ref={sectionRef}
       id="services" 
-      className="pt-16 sm:pt-24 lg:pt-28 pb-16 sm:pb-24 lg:pb-28 relative bg-[#FAF8F5] text-[#2D2926] overflow-hidden"
+      className="pt-16 sm:pt-20 lg:pt-20 pb-16 sm:pb-20 lg:pb-24 relative bg-[#FAF8F5] text-[#2D2926] overflow-hidden md:min-h-screen md:flex md:flex-col md:justify-start"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-        <header className="pb-10 sm:pb-16">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 lg:gap-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 w-full">
+        <header className="pb-8 sm:pb-12">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 lg:gap-10">
             <div className="max-w-3xl">
-              <div className="flex items-center gap-4 mb-3 sm:mb-6">
+              <div className="flex items-center gap-4 mb-2 sm:mb-4">
                 <div className="h-[2px] w-8 sm:w-12 bg-[#AE917E]"></div>
                 <h2 className="text-[#AE917E] font-display text-[8px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.5em] uppercase flex items-center gap-2 font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#AE917E] animate-pulse" />
@@ -193,7 +390,7 @@ export default function Services() {
           </div>
         </header>
 
-        {/* Refined Responsive Grid: 4 cols on desktop, 2 on tablet, 1 on mobile with generous heights */}
+        {/* Initial Mobile Grid Layout - Natural Scroll, No Pinning (< 768px) */}
         <motion.div 
           initial="hidden"
           whileInView="show"
@@ -205,7 +402,7 @@ export default function Services() {
               transition: { staggerChildren: 0.12, delayChildren: 0.15 }
             }
           }}
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 sm:gap-6"
+          className="grid grid-cols-1 gap-5 block md:hidden"
         >
           {services.map((service) => (
             <motion.div 
@@ -215,7 +412,7 @@ export default function Services() {
                 show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] } }
               }}
               onClick={() => setSelectedService(service)}
-              className="service-card group relative overflow-hidden bg-[#2D2926] border border-[#AE917E]/30 hover:border-[#E0B9A0] rounded-2xl min-h-[440px] sm:min-h-[480px] cursor-pointer shadow-2xl transition-all duration-500 hover:-translate-y-2"
+              className="service-card group relative overflow-hidden bg-[#2D2926] border border-[#AE917E]/30 hover:border-[#E0B9A0] rounded-2xl min-h-[440px] cursor-pointer shadow-2xl transition-all duration-500 hover:-translate-y-2"
             >
               <img 
                 alt={service.title} 
@@ -225,17 +422,17 @@ export default function Services() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#2D2926] via-[#2D2926]/70 to-transparent transition-opacity duration-500"></div>
               
-              <div className="relative h-full p-6 sm:p-7 flex flex-col justify-between z-10">
+              <div className="relative h-full p-6 flex flex-col justify-between z-10">
                 <div className="flex justify-between items-start">
-                  <span className="font-display text-3xl sm:text-4xl text-[#E0B9A0]/60 group-hover:text-[#E0B9A0] transition-colors duration-500 font-bold tracking-tight">{service.id}</span>
+                  <span className="font-display text-3xl text-[#E0B9A0]/60 group-hover:text-[#E0B9A0] transition-colors duration-500 font-bold tracking-tight">{service.id}</span>
                   <div className="w-11 h-11 rounded-full border border-white/20 flex items-center justify-center bg-white/10 group-hover:border-[#E0B9A0] group-hover:bg-[#E0B9A0]/20 transition-all duration-500 shadow-md">
                     <service.icon className="w-5 h-5 text-[#E0B9A0] transition-transform duration-500 group-hover:scale-110" strokeWidth={1.5} />
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <h3 className="font-display text-lg sm:text-xl text-white uppercase tracking-wider leading-snug font-bold">{service.title}</h3>
-                  <p className="text-stone-300 text-xs sm:text-[13px] leading-relaxed font-normal opacity-95">
+                  <h3 className="font-display text-lg text-white uppercase tracking-wider leading-snug font-bold">{service.title}</h3>
+                  <p className="text-stone-300 text-xs leading-relaxed font-normal opacity-95">
                     {service.cardSummary}
                   </p>
                   <div className="pt-3 flex items-center gap-2.5 group-hover:gap-3.5 transition-all duration-300">
@@ -248,6 +445,72 @@ export default function Services() {
             </motion.div>
           ))}
         </motion.div>
+
+        {/* Arc Carousel Container - Scroll-Driven Progression (Desktop & Tablet only >= 768px) */}
+        <div 
+          ref={containerRef}
+          className="relative w-full overflow-visible hidden md:flex justify-center items-start select-none pt-2 sm:pt-4"
+          style={{
+            height: `${layoutConfig.totalHeight}px`,
+          }}
+        >
+          {arcItems.map((item, index) => (
+            <div
+              key={item.key}
+              ref={(el) => {
+                cardDomRefs.current[index] = el;
+              }}
+              className="marquee-item absolute"
+              style={{
+                top: `${layoutConfig.topOffset}px`,
+                left: `calc(50% - ${layoutConfig.itemWidth / 2}px)`,
+                width: `${layoutConfig.itemWidth}px`,
+                height: `${layoutConfig.itemHeight}px`,
+                transformOrigin: `50% ${layoutConfig.radius}px`,
+                willChange: "transform, opacity",
+                backfaceVisibility: "hidden",
+                WebkitBackfaceVisibility: "hidden",
+                transformStyle: "preserve-3d",
+                display: "none",
+              }}
+            >
+              <div 
+                onClick={() => setSelectedService(item.service)}
+                className="service-card group relative overflow-hidden bg-[#2D2926] border border-[#AE917E]/30 hover:border-[#E0B9A0] rounded-2xl w-full h-full cursor-pointer shadow-2xl transition-all duration-500 hover:-translate-y-2 select-none"
+              >
+                <img 
+                  alt={item.service.title} 
+                  className="absolute inset-0 w-full h-full object-cover opacity-35 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" 
+                  src={item.service.image}
+                  referrerPolicy="no-referrer"
+                  draggable={false}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#2D2926] via-[#2D2926]/70 to-transparent transition-opacity duration-500"></div>
+                
+                <div className="relative h-full p-6 sm:p-7 flex flex-col justify-between z-10 pointer-events-none">
+                  <div className="flex justify-between items-start">
+                    <span className="font-display text-3xl sm:text-4xl text-[#E0B9A0]/60 group-hover:text-[#E0B9A0] transition-colors duration-500 font-bold tracking-tight">{item.service.id}</span>
+                    <div className="w-11 h-11 rounded-full border border-white/20 flex items-center justify-center bg-white/10 group-hover:border-[#E0B9A0] group-hover:bg-[#E0B9A0]/20 transition-all duration-500 shadow-md">
+                      <item.service.icon className="w-5 h-5 text-[#E0B9A0] transition-transform duration-500 group-hover:scale-110" strokeWidth={1.5} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="font-display text-lg sm:text-xl text-white uppercase tracking-wider leading-snug font-bold">{item.service.title}</h3>
+                    <p className="text-stone-300 text-xs sm:text-[13px] leading-relaxed font-normal opacity-95">
+                      {item.service.cardSummary}
+                    </p>
+                    <div className="pt-3 flex items-center gap-2.5 group-hover:gap-3.5 transition-all duration-300">
+                      <div className="h-[2px] w-6 bg-[#E0B9A0] group-hover:w-9 transition-all duration-300"></div>
+                      <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-[#E0B9A0] font-bold">Explore Scope</span>
+                      <ArrowUpRightIcon className="w-3.5 h-3.5 text-[#E0B9A0] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300" strokeWidth={2} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Service Detail Modal */}
@@ -372,7 +635,6 @@ export default function Services() {
           </motion.div>
         )}
       </AnimatePresence>
-
     </section>
   );
 }

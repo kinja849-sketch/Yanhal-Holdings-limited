@@ -154,8 +154,8 @@ export default function App() {
           const nextPanel = panels[i + 1];
           if (!nextPanel) return;
 
-          // Leave Contact, Footer, What We Do, and Portfolio Showcase in natural fluid flow (Portfolio and What We Do have their own internal pin-and-scroll)
-          if (panel.id === "panel-contact" || panel.id === "panel-footer" || panel.id === "panel-portfolio" || panel.id === "panel-capabilities") return;
+          // Leave Contact, Footer, What We Do, Portfolio Showcase, and Services in natural fluid flow (they have their own internal pin-and-scroll)
+          if (panel.id === "panel-contact" || panel.id === "panel-footer" || panel.id === "panel-portfolio" || panel.id === "panel-capabilities" || panel.id === "panel-services") return;
 
           // Target next layer: for panel-portfolio, the next layer is the RestorationSlider showreel (#panel-rebirth)
           const targetNext =
@@ -204,7 +204,7 @@ export default function App() {
         // 3. Incoming Panel Typography & Supporting Visual Discovery:
         // Deliberately paced reveals for primary statements and cards as each layer reaches the viewport
         panels.forEach((panel) => {
-          if (panel.id === "panel-hero" || panel.id === "panel-footer") return;
+          if (panel.id === "panel-hero" || panel.id === "panel-footer" || panel.id === "panel-services") return;
 
           // Primary heading zoom & reveal: modest y-offset, scale 0.94 -> 1.0, soft opacity ramp
           const heading = panel.querySelector("h1, h2, h3") as HTMLElement | null;
@@ -265,7 +265,7 @@ export default function App() {
       mm.add("(max-width: 1023px)", () => {
         const panels = gsap.utils.toArray<HTMLElement>(".section-panel");
         panels.forEach((panel) => {
-          if (panel.id === "panel-portfolio") return;
+          if (panel.id === "panel-portfolio" || panel.id === "panel-services") return;
           gsap.set(panel, {
             scale: 1,
             opacity: 1,
