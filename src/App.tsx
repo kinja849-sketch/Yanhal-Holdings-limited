@@ -154,8 +154,8 @@ export default function App() {
           const nextPanel = panels[i + 1];
           if (!nextPanel) return;
 
-          // Leave Contact, Footer, and Portfolio Showcase in natural fluid flow (Portfolio has its own horizontal pin-and-scroll)
-          if (panel.id === "panel-contact" || panel.id === "panel-footer" || panel.id === "panel-portfolio") return;
+          // Leave Contact, Footer, What We Do, and Portfolio Showcase in natural fluid flow (Portfolio and What We Do have their own internal pin-and-scroll)
+          if (panel.id === "panel-contact" || panel.id === "panel-footer" || panel.id === "panel-portfolio" || panel.id === "panel-capabilities") return;
 
           // Target next layer: for panel-portfolio, the next layer is the RestorationSlider showreel (#panel-rebirth)
           const targetNext =
