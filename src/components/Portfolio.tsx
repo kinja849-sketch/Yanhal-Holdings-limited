@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "motion/react";
-import { useState, useRef, useEffect } from "react";
-
+import { useState, useRef } from "react";
+import { gsap, useGSAP } from "../lib/gsap";
 
 interface Project {
   title: string;
@@ -15,6 +15,7 @@ interface Project {
 export default function Portfolio() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isRestorationModalOpen, setIsRestorationModalOpen] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const restorationContent = [
@@ -29,11 +30,42 @@ export default function Portfolio() {
     "Through this process, spaces are not just renovated—they are repositioned to serve their purpose more effectively, offering clients a renewed environment that is practical, efficient, and ready for continued use."
   ];
 
+  useGSAP(
+    () => {
+      const section = sectionRef.current;
+      const track = scrollRef.current;
+      if (!section || !track) return;
+
+      const getScrollLength = () => Math.max(0, track.scrollWidth - window.innerWidth);
+
+      gsap.to(track, {
+        x: () => -getScrollLength(),
+        ease: "none",
+        scrollTrigger: {
+          trigger: section,
+          pin: true,
+          start: "top top",
+          end: () => `+=${getScrollLength()}`,
+          scrub: true,
+          invalidateOnRefresh: true,
+          anticipatePin: 1,
+          refreshPriority: 15,
+        },
+      });
+    },
+    { scope: sectionRef }
+  );
+
   const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const { scrollLeft, clientWidth } = scrollRef.current;
-      const scrollTo = direction === 'left' ? scrollLeft - clientWidth : scrollLeft + clientWidth;
-      scrollRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' });
+    const lenis = (window as any).__lenis;
+    const distance = window.innerWidth * 0.5;
+    if (lenis) {
+      lenis.scrollTo(lenis.scroll + (direction === 'left' ? -distance : distance));
+    } else {
+      window.scrollBy({
+        top: direction === 'left' ? -distance : distance,
+        behavior: 'smooth',
+      });
     }
   };
 
@@ -112,6 +144,7 @@ export default function Portfolio() {
 
   return (
     <section 
+      ref={sectionRef}
       id="portfolio" 
       className="py-18 sm:py-24 lg:py-28 overflow-hidden bg-[#2D2926] text-[#FAF8F5] relative"
     >
@@ -145,7 +178,8 @@ export default function Portfolio() {
 
       <div 
         ref={scrollRef}
-        className="flex overflow-x-auto no-scrollbar gap-6 sm:gap-8 px-6 sm:px-10 pb-8 snap-x snap-mandatory"
+        style={{ width: "max-content", willChange: "transform" }}
+        className="flex w-max no-scrollbar gap-6 sm:gap-8 px-6 sm:px-10 pb-8 snap-x snap-mandatory"
       >
         {projects.map((project, idx) => (
           <div 

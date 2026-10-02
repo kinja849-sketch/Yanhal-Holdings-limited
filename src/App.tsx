@@ -15,7 +15,6 @@ import StartProject from "./components/StartProject";
 import Footer from "./components/Footer";
 import FeatureSection from "./components/FeatureSection";
 import ScrollTimeline from "./components/ScrollTimeline";
-import FluidLineLoop from "./components/FluidLineLoop";
 import CinematicTransition from "./components/CinematicTransition";
 import YanhalBot from "./components/YanhalBot";
 import { transitionManager } from "./lib/transitionManager";
@@ -155,8 +154,8 @@ export default function App() {
           const nextPanel = panels[i + 1];
           if (!nextPanel) return;
 
-          // Leave Contact and Footer in natural fluid flow so form submission and footer links are fully accessible
-          if (panel.id === "panel-contact" || panel.id === "panel-footer") return;
+          // Leave Contact, Footer, and Portfolio Showcase in natural fluid flow (Portfolio has its own horizontal pin-and-scroll)
+          if (panel.id === "panel-contact" || panel.id === "panel-footer" || panel.id === "panel-portfolio") return;
 
           // Target next layer: for panel-portfolio, the next layer is the RestorationSlider showreel (#panel-rebirth)
           const targetNext =
@@ -266,6 +265,7 @@ export default function App() {
       mm.add("(max-width: 1023px)", () => {
         const panels = gsap.utils.toArray<HTMLElement>(".section-panel");
         panels.forEach((panel) => {
+          if (panel.id === "panel-portfolio") return;
           gsap.set(panel, {
             scale: 1,
             opacity: 1,
@@ -362,12 +362,8 @@ export default function App() {
         </div>
         <div className="section-dwell-spacer hidden lg:block h-[28vh] pointer-events-none" aria-hidden="true" />
 
-        {/* 05 & 06 Connected Span with Continuous Fluid Drawing Line Loop */}
+        {/* 05 & 06 Connected Span */}
         <div className="relative w-full">
-          <div className="absolute inset-0 pointer-events-none z-[65] overflow-visible">
-            <FluidLineLoop />
-          </div>
-
           {/* 05. Engineering & Finishing Scope */}
           <div id="panel-services" className="section-panel panel section-panel-elevated relative z-50 bg-[#FAF8F5]">
             <Services />
