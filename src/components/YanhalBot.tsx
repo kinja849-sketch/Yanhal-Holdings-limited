@@ -746,7 +746,7 @@ export default function YanhalBot() {
                     <YanhalLogoSvg className="w-full h-full" />
                   </div>
                   <span className="text-base font-bold tracking-tight text-neutral-900">
-                    Bot
+                    Archie
                   </span>
                 </div>
 
@@ -900,30 +900,9 @@ export default function YanhalBot() {
                     {messages.length === 0 ? (
                       /* Zero state: strictly matches screenshot "Ready when you are." */
                       <div className="min-h-full my-auto flex flex-col items-center justify-center text-center select-none py-3 sm:py-0">
-                        <h2 className="text-3xl sm:text-4xl font-normal text-neutral-800 tracking-tight mb-2">
+                        <h2 className="text-3xl sm:text-4xl font-normal text-neutral-800 tracking-tight">
                           Ready when you are.
                         </h2>
-                        <p className="text-sm text-neutral-500 max-w-sm leading-relaxed px-2 sm:px-0">
-                          Ask about project estimates, blueprint process, our services, or explore completed works.
-                        </p>
-
-                        {/* Quick Prompts */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-5 sm:mt-8 max-w-md w-full">
-                          {[
-                            "Estimate a 200 sqm residential project",
-                            "What is your Blueprint Process?",
-                            "Check consultation availability",
-                            "Where is Yanhal headquarters located?"
-                          ].map((prompt, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => handleSend(prompt, "text")}
-                              className="text-left text-xs text-neutral-600 bg-white hover:bg-neutral-100 border border-neutral-200 p-3 rounded-xl transition-all shadow-sm active:scale-[0.99] touch-manipulation"
-                            >
-                              {prompt}
-                            </button>
-                          ))}
-                        </div>
                       </div>
                     ) : (
                       /* Active Conversation */
@@ -1182,7 +1161,7 @@ export default function YanhalBot() {
                             handleSend();
                           }
                         }}
-                        placeholder="Ask YanhalBot"
+                        placeholder="Ask Archie"
                         className="flex-1 bg-transparent border-none outline-none px-3 py-2 text-base sm:text-sm text-neutral-800 placeholder-neutral-500"
                       />
 
@@ -1194,6 +1173,22 @@ export default function YanhalBot() {
                         </svg>
                       </div>
 
+                      {inputValue.trim().length > 0 || attachedFiles.length > 0 ? (
+                        /* Send button: replaces mic + voice buttons as soon as the user types (WhatsApp style) */
+                        <button
+                          type="button"
+                          onClick={() => handleSend()}
+                          className="w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-md transition-transform hover:scale-105 active:scale-95 shrink-0 ml-2"
+                          title="Send message"
+                          aria-label="Send message"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="19" x2="12" y2="5" />
+                            <polyline points="5 12 12 5 19 12" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <>
                       {/* Microphone icon for dictation: text appears in box upon completion */}
                       <button
                         type="button"
@@ -1240,6 +1235,8 @@ export default function YanhalBot() {
                           <span className="w-0.5 h-3.5 bg-white rounded-full" />
                         </div>
                       </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
