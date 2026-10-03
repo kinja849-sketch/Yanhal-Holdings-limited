@@ -1,14 +1,8 @@
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
 import Navbar from "./Navbar";
-import { gsap, useGSAP } from "../lib/gsap";
+import { gsap, useGSAP, ScrollTrigger } from "../lib/gsap";
 import { transitionManager } from "../lib/transitionManager";
-import { 
-  ArrowUpRightIcon, 
-  ArrowRightIcon, 
-  BuildingOffice2Icon, 
-  SparklesIcon, 
-  ShieldCheckIcon 
-} from "@heroicons/react/24/outline";
+import { ArrowUpRightIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 
 interface HeroProps {
   startEntrance?: boolean;
@@ -20,97 +14,296 @@ export default function Hero({ startEntrance = true }: HeroProps) {
   const titleContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  useGSAP(
-    () => {
-    if (!startEntrance) {
-      gsap.set(
-        [
-          ".hero-eyebrow",
-          ".hero-char-1",
-          ".hero-char-2",
-          ".hero-description",
-          ".hero-cta-btn",
-          ".hero-metric-item",
-        ],
-        { opacity: 0 }
-      );
+  // Track the last played animation style so consecutive animations are always unpredictable & different
+  const lastStyleRef = useRef<string | null>(null);
+  const isAnimatingRef = useRef(false);
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const activeScramblesRef = useRef<(() => void)[]>([]);
+
+  // Headline Words Breakdown
+  const line1Words = ["YOUR", "VISION."];
+  const line2Words = ["BUILT", "DIFFERENT."];
+
+  // ── 7 Unpredictable GSAP Animation Styles (from https://gsap-text-animations-cloneable.webflow.io/) ──
+  const playUnpredictableAnimation = useCallback(() => {
+    if (!titleContainerRef.current) return;
+    const chars = titleContainerRef.current.querySelectorAll<HTMLElement>(".hero-char");
+    if (!chars.length) return;
+
+    // Check for prefers-reduced-motion
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      gsap.set(chars, { clearProps: "all", opacity: 1 });
       return;
     }
+
+    // Cancel any active scramble timeouts or running tweens
+    activeScramblesRef.current.forEach((cancel) => cancel());
+    activeScramblesRef.current = [];
+    gsap.killTweensOf(chars);
+
+    // Reset character textContent back to original attribute data-char
+    chars.forEach((c) => {
+      const orig = c.getAttribute("data-char");
+      if (orig) c.textContent = orig;
+    });
+
+    const styles = [
+      "rise",             // Cloneable #1: Vertical Rise Stagger
+      "flip-center",      // Cloneable #2: 3D Center Flip
+      "alternating-skew", // Cloneable #4: 3D Alternating Split & Skew
+      "scramble",         // Cloneable #6: Cyber / Matrix Scramble Decoder
+      "blur-reveal",      // Cloneable #8: Cinematic Gaussian Blur Reveal
+      "deep-space",       // Cloneable #9: 3D Deep Space Assembly
+      "elastic-stretch",  // Cloneable #10: Elastic Kinetic Snap
+    ];
+
+    // Pick a style different from the last one played
+    const available = styles.filter((s) => s !== lastStyleRef.current);
+    const chosen = available[Math.floor(Math.random() * available.length)];
+    lastStyleRef.current = chosen;
+    isAnimatingRef.current = true;
+
+    // Execute selected animation style
+    switch (chosen) {
+      case "rise": {
+        // Cloneable #1: Vertical Rise Stagger
+        gsap.set(chars, { clearProps: "all" });
+        gsap.fromTo(
+          chars,
+          { opacity: 0, yPercent: 110 },
+          {
+            opacity: 1,
+            yPercent: 0,
+            duration: 0.9,
+            ease: "power3.out",
+            stagger: 0.035,
+            onComplete: () => {
+              isAnimatingRef.current = false;
+            },
+          }
+        );
+        break;
+      }
+
+      case "flip-center": {
+        // Cloneable #2: 3D Flip from Center
+        gsap.set(chars, { clearProps: "all" });
+        gsap.fromTo(
+          chars,
+          { opacity: 0, rotateX: -85, transformOrigin: "50% 50% -30px" },
+          {
+            opacity: 1,
+            rotateX: 0,
+            duration: 1.0,
+            ease: "power3.out",
+            stagger: {
+              each: 0.04,
+              from: "center",
+              grid: "auto",
+            },
+            onComplete: () => {
+              isAnimatingRef.current = false;
+            },
+          }
+        );
+        break;
+      }
+
+      case "alternating-skew": {
+        // Cloneable #4: 3D Alternating Split & Skew
+        gsap.set(chars, { clearProps: "all" });
+        gsap.fromTo(
+          chars,
+          {
+            opacity: 0,
+            rotateY: -50,
+            yPercent: (i: number) => (i % 2 === 0 ? -110 : 110),
+          },
+          {
+            opacity: 1,
+            rotateY: 0,
+            yPercent: 0,
+            duration: 0.95,
+            ease: "power3.out",
+            stagger: 0.035,
+            onComplete: () => {
+              isAnimatingRef.current = false;
+            },
+          }
+        );
+        break;
+      }
+
+      case "scramble": {
+        // Cloneable #6: Cyber / Matrix Scramble Decoder
+        gsap.set(chars, { clearProps: "all" });
+        const glyphs = "█▓▒░<>!@#$%^&*+/";
+        const scrambleDuration = 1.3;
+        const scrambleInterval = 45;
+        const iterations = Math.ceil((scrambleDuration * 1000) / scrambleInterval);
+
+        chars.forEach((charEl, idx) => {
+          const original = charEl.getAttribute("data-char") || charEl.textContent || "";
+          if (original === " " || original === "") return;
+
+          let iteration = 0;
+          let timerId: NodeJS.Timeout;
+          let cancelled = false;
+
+          const cancel = () => {
+            cancelled = true;
+            clearTimeout(timerId);
+            charEl.textContent = original;
+          };
+          activeScramblesRef.current.push(cancel);
+
+          const step = () => {
+            if (cancelled) return;
+            if (iteration >= iterations) {
+              charEl.textContent = original;
+              if (idx === chars.length - 1) isAnimatingRef.current = false;
+              return;
+            }
+            charEl.textContent =
+              Math.random() > iteration / iterations
+                ? glyphs[Math.floor(Math.random() * glyphs.length)]
+                : original;
+            iteration++;
+            timerId = setTimeout(step, scrambleInterval);
+          };
+
+          gsap.fromTo(
+            charEl,
+            { opacity: 0 },
+            {
+              opacity: 1,
+              duration: 0.35,
+              delay: idx * 0.025,
+              onStart: step,
+            }
+          );
+        });
+        break;
+      }
+
+      case "blur-reveal": {
+        // Cloneable #8: Cinematic Gaussian Blur Reveal
+        gsap.set(chars, { clearProps: "all" });
+        gsap.fromTo(
+          chars,
+          { opacity: 0, filter: "blur(14px)", y: 24 },
+          {
+            opacity: 1,
+            filter: "blur(0px)",
+            y: 0,
+            duration: 1.0,
+            ease: "power3.out",
+            stagger: 0.035,
+            onComplete: () => {
+              isAnimatingRef.current = false;
+            },
+          }
+        );
+        break;
+      }
+
+      case "deep-space": {
+        // Cloneable #9: 3D Deep Space Assembly
+        gsap.set(chars, { clearProps: "all" });
+        gsap.fromTo(
+          chars,
+          {
+            opacity: 0,
+            y: 50,
+            z: () => gsap.utils.random(-180, 180),
+            rotationX: () => gsap.utils.random(-80, 80),
+            rotationY: () => gsap.utils.random(-80, 80),
+          },
+          {
+            opacity: 1,
+            y: 0,
+            z: 0,
+            rotationX: 0,
+            rotationY: 0,
+            duration: 1.1,
+            ease: "power3.out",
+            stagger: 0.035,
+            onComplete: () => {
+              isAnimatingRef.current = false;
+            },
+          }
+        );
+        break;
+      }
+
+      case "elastic-stretch": {
+        // Cloneable #10: Elastic Kinetic Snap
+        gsap.set(chars, { clearProps: "all" });
+        gsap.fromTo(
+          chars,
+          { scaleX: 3.5, scaleY: 0.15, opacity: 0 },
+          {
+            scaleX: 1,
+            scaleY: 1,
+            opacity: 1,
+            duration: 1.2,
+            ease: "elastic.out(1, 0.75)",
+            stagger: 0.03,
+            onComplete: () => {
+              isAnimatingRef.current = false;
+            },
+          }
+        );
+        break;
+      }
+
+      default:
+        gsap.set(chars, { opacity: 1 });
+        isAnimatingRef.current = false;
+    }
+  }, []);
+
+  // ── GSAP Entrance, Unpredictable Scrollback Trigger & Parallax ─────────────────
+  useGSAP(
+    () => {
+      if (!startEntrance) return;
 
       const mm = gsap.matchMedia();
 
       mm.add("(prefers-reduced-motion: no-preference)", () => {
-        const tl = gsap.timeline({ defaults: { ease: "power4.out" } });
+        // 1. Initial entrance animation
+        playUnpredictableAnimation();
 
-        // Step 1: Subtle Eyebrow reveal
-        tl.fromTo(
-          ".hero-eyebrow",
-          { opacity: 0, y: 14 },
-          { opacity: 1, y: 0, duration: 0.65, stagger: 0.08, clearProps: "all" }
+        // 2. Reveal bottom CTAs
+        gsap.fromTo(
+          ".hero-cta-btn",
+          { opacity: 0, y: 16, scale: 0.96 },
+          { opacity: 1, y: 0, scale: 1, stagger: 0.1, duration: 0.6, delay: 0.3, ease: "power3.out" }
         );
 
-        // Step 2: Signature Letter Blur & Scale Reveal for "YOUR VISION. BUILT DIFFERENT."
-        tl.fromTo(
-          ".hero-char-1",
-          {
-            scale: 1.35,
-            filter: "blur(25px)",
-            opacity: 0,
-            y: 30,
+        // 3. ScrollTrigger: Trigger a NEW unpredictable animation upon EACH scrollback
+        let hasScrolledAway = false;
+        ScrollTrigger.create({
+          trigger: heroRef.current,
+          start: "top top",
+          end: "bottom 60%",
+          onLeave: () => {
+            // User scrolled down past hero threshold
+            hasScrolledAway = true;
           },
-          {
-            scale: 1,
-            filter: "blur(0px)",
-            opacity: 1,
-            y: 0,
-            stagger: 0.024,
-            duration: 1.1,
-            ease: "expo.out",
+          onEnterBack: () => {
+            // User scrolled back up into hero: trigger fresh unpredictable animation!
+            if (hasScrolledAway) {
+              playUnpredictableAnimation();
+              hasScrolledAway = false;
+            }
           },
-          "-=0.3"
-        )
-          .fromTo(
-            ".hero-char-2",
-            {
-              scale: 1.35,
-              filter: "blur(25px)",
-              opacity: 0,
-              y: 30,
-            },
-            {
-              scale: 1,
-              filter: "blur(0px)",
-              opacity: 1,
-              y: 0,
-              stagger: 0.022,
-              duration: 1.1,
-              ease: "expo.out",
-            },
-            "-=0.7"
-          )
-          // Step 3: Supporting copy
-          .fromTo(
-            ".hero-description",
-            { opacity: 0, y: 16, filter: "blur(8px)" },
-            { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "expo.out", clearProps: "all" },
-            "-=0.5"
-          )
-          // Step 4: Compact CTA buttons entrance
-          .fromTo(
-            ".hero-cta-btn",
-            { opacity: 0, y: 18, scale: 0.96 },
-            { opacity: 1, y: 0, scale: 1, stagger: 0.1, duration: 0.6, ease: "power3.out", clearProps: "all" },
-            "-=0.45"
-          )
-          // Step 5: Metric indicators bar
-          .fromTo(
-            ".hero-metric-item",
-            { opacity: 0, y: 14 },
-            { opacity: 1, y: 0, stagger: 0.08, duration: 0.55, ease: "power2.out", clearProps: "all" },
-            "-=0.35"
-          );
+        });
 
-        // ScrollTrigger: Natural cinematic depth recession as user scrolls down
+        // 4. Subtle depth recession as user scrolls away
         gsap.to(titleContainerRef.current, {
           scrollTrigger: {
             trigger: heroRef.current,
@@ -118,9 +311,9 @@ export default function Hero({ startEntrance = true }: HeroProps) {
             end: "bottom top",
             scrub: 0.8,
           },
-          yPercent: 16,
-          opacity: 0.35,
-          scale: 0.94,
+          yPercent: 12,
+          opacity: 0.3,
+          scale: 0.96,
           ease: "none",
         });
 
@@ -140,35 +333,39 @@ export default function Hero({ startEntrance = true }: HeroProps) {
       });
 
       mm.add("(prefers-reduced-motion: reduce)", () => {
-        gsap.set(
-          [
-            ".hero-eyebrow",
-            ".hero-char-1",
-            ".hero-char-2",
-            ".hero-description",
-            ".hero-cta-btn",
-            ".hero-metric-item",
-          ],
-          { opacity: 1, y: 0, yPercent: 0, rotateX: 0, scale: 1 }
-        );
+        if (titleContainerRef.current) {
+          const chars = titleContainerRef.current.querySelectorAll(".hero-char");
+          gsap.set(chars, { opacity: 1, clearProps: "all" });
+        }
       });
     },
-    { dependencies: [startEntrance], scope: heroRef }
+    { dependencies: [startEntrance, playUnpredictableAnimation], scope: heroRef }
   );
 
-  const line1Words = ["YOUR", "VISION."];
-  const line2Words = ["BUILT", "DIFFERENT."];
+  // Subtle periodic cycle if user remains idle on hero for >8 seconds
+  const handleIdleCycle = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (window.scrollY < 200 && !isAnimatingRef.current) {
+      playUnpredictableAnimation();
+    }
+  }, [playUnpredictableAnimation]);
+
+  useGSAP(() => {
+    if (!startEntrance) return;
+    const interval = setInterval(handleIdleCycle, 8500);
+    return () => clearInterval(interval);
+  }, { dependencies: [startEntrance, handleIdleCycle] });
 
   return (
     <section
       ref={heroRef}
       id="home"
-      className="section-brand-black relative w-full min-h-[100svh] flex flex-col justify-between overflow-hidden text-[#FAF8F5] pt-18 sm:pt-20 md:pt-24 origin-bottom will-change-transform bg-[#080809]"
+      className="section-brand-black relative w-full h-[100svh] min-h-[600px] flex flex-col justify-between overflow-hidden text-[#FAF8F5] pt-18 sm:pt-20 md:pt-24 origin-bottom will-change-transform bg-[#080809]"
     >
       {/* Top Scoped Navigation Header */}
       <Navbar />
 
-      {/* Visual Foundation: Cinematic Video Background - Clearly & Vibrantly Visible */}
+      {/* Visual Foundation: Cinematic Video Background - 100% Unobstructed */}
       <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden flex items-center justify-center">
         <video
           ref={videoRef}
@@ -184,111 +381,82 @@ export default function Hero({ startEntrance = true }: HeroProps) {
           }}
         />
 
-        {/* Architectural Atmospheric Scrims - Warm, translucent, non-dominant black */}
-        <div className="absolute inset-x-0 top-0 h-28 sm:h-36 bg-gradient-to-b from-[#080809]/70 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-x-0 bottom-0 h-40 sm:h-52 bg-gradient-to-t from-[#080809]/85 via-[#080809]/30 to-transparent pointer-events-none" />
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: "radial-gradient(circle at 50% 50%, rgba(45, 41, 38, 0.25) 0%, transparent 80%)"
-          }}
-        />
+        {/* Ambient Architectural Scrims for Flawless Readability Over Video */}
+        <div className="absolute inset-0 bg-[#080809]/40 sm:bg-[#080809]/30 pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-28 sm:h-36 bg-gradient-to-b from-[#080809]/85 via-[#080809]/30 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-44 sm:h-64 bg-gradient-to-t from-[#080809]/90 via-[#080809]/40 to-transparent pointer-events-none" />
       </div>
 
-      {/* Top Editorial Subheadings Framing Row (Below Navbar) */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 pt-3 sm:pt-4 flex items-center justify-between text-xs text-stone-300 font-sans font-light">
-        <div className="hero-eyebrow max-w-xs text-left leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] hidden sm:block text-[11px] md:text-xs">
-          We design &amp; build structures that combine architectural aesthetics with engineering integrity.
-        </div>
-        <div className="hero-eyebrow mx-auto sm:mx-0 flex items-center gap-2 py-1 px-3 rounded-full bg-white/5 border border-white/15 backdrop-blur-xs">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#E0B9A0] shadow-[0_0_8px_#E0B9A0]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-[#AE917E] shadow-[0_0_8px_#AE917E]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
-        </div>
-        <div className="hero-eyebrow max-w-xs text-right leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] hidden sm:block text-[11px] md:text-xs">
-          Delivering commercial &amp; residential developments across Nairobi and East Africa.
-        </div>
-      </div>
-
-      {/* Main Centered Hero Composition */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 my-auto py-2 sm:py-4 md:py-6 flex flex-col items-center justify-center text-center">
-        
-        {/* Monumental Choreographed Headline with Aroclux Split Character Animation */}
-        <h1 
+      {/* Central Zone: "Your Vision. Built Different." Unpredictable GSAP Animated Text */}
+      <div className="relative z-10 w-full max-w-5xl mx-auto px-6 sm:px-12 flex-1 flex flex-col justify-center items-center">
+        <h1
           ref={titleContainerRef}
-          className="hero-title-container relative flex flex-col items-center justify-center w-full max-w-5xl px-2 will-change-transform"
+          className="hero-title-container flex flex-col items-center sm:items-start text-center sm:text-left will-change-transform select-none sm:-translate-x-6 md:-translate-x-10"
         >
-          {/* First Line: YOUR VISION. */}
-          <span className="overflow-hidden w-full py-0.5 sm:py-1 block">
-            <span 
-              className="text-[clamp(1.5rem,6.2vw,5.5rem)] font-display font-black text-[#FAF8F5]/90 tracking-[0.06em] sm:tracking-[0.14em] uppercase leading-[1.02] select-none text-center drop-shadow-[0_2px_14px_rgba(0,0,0,0.65)] m-0 flex justify-center flex-wrap gap-x-2.5 sm:gap-x-5"
-              style={{
-                WebkitTextStroke: "1px rgba(224, 185, 160, 0.35)"
-              }}
-            >
-              {line1Words.map((word, wIdx) => (
-                <span key={wIdx} className="inline-flex whitespace-nowrap">
+          {/* Line 1: YOUR VISION. */}
+          <span className="hero-line block text-[clamp(1.75rem,5.2vw,4.25rem)] font-display font-semibold text-[#FAF8F5] tracking-[0.08em] sm:tracking-[0.12em] uppercase leading-[1.08] drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] drop-shadow-[0_6px_28px_rgba(0,0,0,0.95)] min-h-[1.12em] whitespace-nowrap [perspective:1000px] [transform-style:preserve-3d]">
+            {line1Words.map((word, wIdx) => (
+              <span key={`w1-${wIdx}`} className="inline-block">
+                <span className="hero-word inline-block whitespace-nowrap [perspective:1000px] [transform-style:preserve-3d]">
                   {word.split("").map((char, cIdx) => (
-                    <span key={cIdx} className="title-char-mask">
-                      <span className="title-char-inner hero-char-1">
-                        {char}
-                      </span>
+                    <span
+                      key={`c1-${wIdx}-${cIdx}`}
+                      className="hero-char inline-block will-change-transform"
+                      data-char={char}
+                    >
+                      {char}
                     </span>
                   ))}
                 </span>
-              ))}
-            </span>
+                {wIdx < line1Words.length - 1 && <span className="inline-block w-[0.26em] select-none">&nbsp;</span>}
+              </span>
+            ))}
           </span>
 
-          {/* Second Line: BUILT DIFFERENT. */}
-          <span className="overflow-hidden w-full mt-1 sm:mt-2.5 py-0.5 sm:py-1 block">
-            <span 
-              className="text-[clamp(1.35rem,5.4vw,4.7rem)] font-display font-black text-[#FAF8F5]/90 tracking-[0.06em] sm:tracking-[0.14em] uppercase leading-[1.02] select-none text-center flex justify-center flex-wrap gap-x-2.5 sm:gap-x-5 drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] m-0"
-              style={{
-                WebkitTextStroke: "1px rgba(224, 185, 160, 0.3)"
-              }}
-            >
-              {line2Words.map((word, wIdx) => (
-                <span key={wIdx} className="inline-flex whitespace-nowrap">
+          {/* Line 2: BUILT DIFFERENT. */}
+          <span className="hero-line block text-[clamp(1.5rem,4.5vw,3.65rem)] font-display font-semibold text-[#FAF8F5]/95 tracking-[0.08em] sm:tracking-[0.12em] uppercase leading-[1.08] drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] drop-shadow-[0_6px_28px_rgba(0,0,0,0.95)] mt-1.5 sm:mt-2.5 min-h-[1.12em] whitespace-nowrap [perspective:1000px] [transform-style:preserve-3d]">
+            {line2Words.map((word, wIdx) => (
+              <span key={`w2-${wIdx}`} className="inline-block">
+                <span className="hero-word inline-block whitespace-nowrap [perspective:1000px] [transform-style:preserve-3d]">
                   {word.split("").map((char, cIdx) => (
-                    <span key={cIdx} className="title-char-mask">
-                      <span className="title-char-inner hero-char-2">
-                        {char}
-                      </span>
+                    <span
+                      key={`c2-${wIdx}-${cIdx}`}
+                      className="hero-char inline-block will-change-transform"
+                      data-char={char}
+                    >
+                      {char}
                     </span>
                   ))}
                 </span>
-              ))}
-            </span>
+                {wIdx < line2Words.length - 1 && <span className="inline-block w-[0.26em] select-none">&nbsp;</span>}
+              </span>
+            ))}
           </span>
         </h1>
+      </div>
 
-        {/* Centered Concise Supporting Copy */}
-        <p className="hero-description text-stone-200 text-[clamp(0.82rem,1.18vw,1.08rem)] font-sans font-light leading-relaxed max-w-2xl mx-auto mt-3 sm:mt-4 md:mt-5 mb-5 sm:mb-6 md:mb-7 px-2 drop-shadow-[0_1px_6px_rgba(0,0,0,0.7)]">
-          From bold new builds to spaces completely reimagined, we turn ambitious ideas into places made to stand out, built with purpose, and finished down to the last detail.
-        </p>
-
-        {/* Refined Responsive Hero CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-5 w-auto max-w-full px-4 sm:px-0">
-          {/* Primary CTA: Aroclux Warm Sandstone Peach Fill */}
+      {/* Bottom Zone: Visible Action Buttons Floating Close to Bottom - Beside Each Other & Exact Same Size */}
+      <div className="relative z-20 w-full max-w-5xl mx-auto px-4 sm:px-12 pb-18 sm:pb-12 md:pb-14 flex items-center justify-center">
+        <div className="flex flex-row items-center justify-center gap-2.5 sm:gap-4 md:gap-5 w-auto">
+          {/* Primary CTA: Start Project */}
           <a
             href="#contact"
             onClick={(e) => {
               e.preventDefault();
               transitionManager.transitionTo({
                 destination: "#contact",
-                label: "START YOUR PROJECT",
+                label: "START PROJECT",
               });
             }}
-            className="hero-cta-btn btn-fill-hover group w-auto inline-flex items-center justify-center gap-2.5 sm:gap-3 px-6 sm:px-8 py-2.5 sm:py-3.5 min-h-[44px] sm:min-h-[48px] rounded-full border border-[#E0B9A0] bg-[#E0B9A0] text-[#2D2926] hover:bg-[#FAF8F5] hover:border-[#FAF8F5] text-[10px] sm:text-[11px] font-mono font-bold tracking-[0.16em] sm:tracking-[0.22em] uppercase shadow-[0_4px_20px_rgba(0,0,0,0.4),0_0_20px_rgba(224,185,160,0.3)] active:scale-[0.97] transition-all duration-300 shrink-0"
+            className="hero-cta-btn btn-fill-hover group w-[138px] sm:w-[195px] md:w-[210px] h-[44px] sm:h-[48px] md:h-[50px] inline-flex items-center justify-center gap-1.5 sm:gap-2.5 px-3 sm:px-6 rounded-full border border-[#E0B9A0] bg-[#E0B9A0] text-[#2D2926] hover:bg-[#FAF8F5] hover:border-[#FAF8F5] text-[9.5px] sm:text-[11px] font-mono font-bold tracking-[0.08em] sm:tracking-[0.16em] uppercase shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(224,185,160,0.3)] active:scale-[0.97] transition-all duration-300 shrink-0"
           >
-            <span>Start Your Project</span>
-            <div className="w-5 h-5 rounded-full bg-[#2D2926]/15 group-hover:bg-[#2D2926]/25 flex items-center justify-center transition-colors shrink-0">
-              <ArrowUpRightIcon className="w-3 h-3 text-[#2D2926] stroke-[2.5] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+            <span className="whitespace-nowrap">Start Project</span>
+            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#2D2926]/15 group-hover:bg-[#2D2926]/25 flex items-center justify-center shrink-0 transition-colors">
+              <ArrowUpRightIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#2D2926] stroke-[2.5] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </div>
           </a>
 
-          {/* Secondary CTA: Architectural Frosted Glass with Warm Slate Accent */}
+          {/* Secondary CTA: Check Us Out */}
           <a
             href="#portfolio"
             onClick={(e) => {
@@ -298,66 +466,15 @@ export default function Hero({ startEntrance = true }: HeroProps) {
                 label: "03 · SELECTED WORKS",
               });
             }}
-            className="hero-cta-btn btn-fill-hover group w-auto inline-flex items-center justify-center gap-2.5 sm:gap-3 px-6 sm:px-8 py-2.5 sm:py-3.5 min-h-[44px] sm:min-h-[48px] rounded-full border border-white/25 bg-[#181514]/60 backdrop-blur-md text-[#FAF8F5] before:bg-[#AE917E] hover:border-[#AE917E] hover:text-white text-[10px] sm:text-[11px] font-mono font-bold tracking-[0.16em] sm:tracking-[0.22em] uppercase shadow-[0_4px_20px_rgba(0,0,0,0.4)] active:scale-[0.97] transition-all duration-300 shrink-0"
+            className="hero-cta-btn btn-fill-hover group w-[138px] sm:w-[195px] md:w-[210px] h-[44px] sm:h-[48px] md:h-[50px] inline-flex items-center justify-center gap-1.5 sm:gap-2.5 px-3 sm:px-6 rounded-full border border-white/25 bg-[#181514]/70 backdrop-blur-md text-[#FAF8F5] hover:border-[#AE917E] hover:text-white text-[9.5px] sm:text-[11px] font-mono font-bold tracking-[0.08em] sm:tracking-[0.16em] uppercase shadow-[0_4px_25px_rgba(0,0,0,0.5)] active:scale-[0.97] transition-all duration-300 shrink-0"
           >
-            <span>Check Us Out</span>
-            <ArrowRightIcon className="w-3.5 h-3.5 text-[#E0B9A0] group-hover:text-white stroke-[2] group-hover:translate-x-1 transition-transform duration-300" />
+            <span className="whitespace-nowrap">Check Us Out</span>
+            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center shrink-0 transition-colors">
+              <ArrowRightIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#E0B9A0] group-hover:text-white stroke-[2.5] group-hover:translate-x-0.5 transition-transform" />
+            </div>
           </a>
         </div>
-
       </div>
-
-      {/* Bottom Architectural Standards Bar (Guaranteed Full Visibility, Never Cropped) */}
-      <div className="relative z-20 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-12 pt-2">
-        <div className="pt-4 sm:pt-5 border-t border-white/20 grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 justify-center">
-          {/* Turnkey Builds */}
-          <div className="hero-metric-item flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1.5 sm:gap-2.5 md:gap-3 text-center sm:text-left">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#E0B9A0]/50 bg-[#E0B9A0]/15 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(224,185,160,0.2)]">
-              <BuildingOffice2Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#E0B9A0] stroke-[1.5]" />
-            </div>
-            <div className="flex flex-col items-center sm:items-start">
-              <span className="text-[8px] sm:text-[10px] md:text-[11px] font-mono font-bold uppercase tracking-wider text-[#FAF8F5] whitespace-nowrap">
-                Turnkey Builds
-              </span>
-              <span className="text-[7px] sm:text-[9px] md:text-[10px] text-stone-300 font-sans whitespace-nowrap">
-                Civil Engineering
-              </span>
-            </div>
-          </div>
-
-          {/* Bespoke Fitouts */}
-          <div className="hero-metric-item flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 md:gap-3 text-center sm:text-left">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#AE917E]/50 bg-[#AE917E]/15 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(174,145,126,0.2)]">
-              <SparklesIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#AE917E] stroke-[1.5]" />
-            </div>
-            <div className="flex flex-col items-center sm:items-start">
-              <span className="text-[8px] sm:text-[10px] md:text-[11px] font-mono font-bold uppercase tracking-wider text-[#FAF8F5] whitespace-nowrap">
-                Bespoke Fitouts
-              </span>
-              <span className="text-[7px] sm:text-[9px] md:text-[10px] text-stone-300 font-sans whitespace-nowrap">
-                Interior Artistry
-              </span>
-            </div>
-          </div>
-
-          {/* Grade Standards */}
-          <div className="hero-metric-item flex flex-col sm:flex-row items-center justify-center sm:justify-end gap-1.5 sm:gap-2.5 md:gap-3 text-center sm:text-left">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-white/30 bg-white/10 backdrop-blur-xs flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.1)]">
-              <ShieldCheckIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#FAF8F5] stroke-[1.5]" />
-            </div>
-            <div className="flex flex-col items-center sm:items-start">
-              <span className="text-[8px] sm:text-[10px] md:text-[11px] font-mono font-bold uppercase tracking-wider text-[#FAF8F5] whitespace-nowrap">
-                Grade Standards
-              </span>
-              <span className="text-[7px] sm:text-[9px] md:text-[10px] text-stone-300 font-sans whitespace-nowrap">
-                Turnkey Quality
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </section>
   );
 }
-

@@ -50,11 +50,11 @@ const mediaItems = [
   { type: 'image', url: '/media-loop/photo_5_2026-04-30_08-28-30.jpg' },
   { type: 'image', url: '/media-loop/photo_5_2026-04-30_08-31-22.jpg' },
   { type: 'image', url: '/media-loop/photo_6_2026-04-30_08-27-39.jpg' },
-  { type: 'video', url: '/media-loop/video-loop-2.mp4', thumb: 'https://images.unsplash.com/photo-1541888086425-d81bb19240f5?q=80&w=600&auto=format&fit=crop' },
-  { type: 'video', url: '/media-loop/video-loop-3.mp4', thumb: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=600&auto=format&fit=crop' },
-  { type: 'video', url: '/media-loop/video-loop-4.mp4', thumb: 'https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?q=80&w=600&auto=format&fit=crop' },
-  { type: 'video', url: '/media-loop/video-loop-5.mp4', thumb: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=600&auto=format&fit=crop' },
-  { type: 'video', url: '/media-loop/video-loop-1.mp4', thumb: 'https://images.unsplash.com/photo-1541888086425-d81bb19240f5?q=80&w=600&auto=format&fit=crop' }
+  { type: 'video', url: '/media-loop/video-loop-2.mp4', thumb: '/media-loop/photo_18_2026-04-30_08-31-22.jpg' },
+  { type: 'video', url: '/media-loop/video-loop-3.mp4', thumb: '/media-loop/photo_20_2026-04-30_08-31-22.jpg' },
+  { type: 'video', url: '/media-loop/video-loop-4.mp4', thumb: '/media-loop/photo_21_2026-04-30_08-31-22.jpg' },
+  { type: 'video', url: '/media-loop/video-loop-5.mp4', thumb: '/media-loop/photo_22_2026-04-30_08-31-22.jpg' },
+  { type: 'video', url: '/media-loop/video-loop-1.mp4', thumb: '/media-loop/photo_15_2026-04-30_08-31-22.jpg' }
 ];
 
 export default function InfiniteMediaLoop() {
@@ -157,7 +157,10 @@ export default function InfiniteMediaLoop() {
                 <img 
                   src={item.thumb} 
                   alt="Video Highlight" 
-                  loading="lazy"
+                  loading="eager"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/media-loop/photo_12_2026-04-30_08-31-22.jpg';
+                  }}
                   className="w-full h-full object-cover pointer-events-none transition-transform duration-500 group-hover:scale-110" 
                 />
                 {/* Frosted Play Indicator */}

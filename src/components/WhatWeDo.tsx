@@ -257,14 +257,17 @@ export default function WhatWeDo() {
       const mm = gsap.matchMedia();
 
       // Motion enabled: Sequenced scroll-driven stacking reveal from translateX(100vw)
+      // Motion enabled: Sequenced scroll-driven stacking reveal
       mm.add("(prefers-reduced-motion: no-preference)", () => {
-        // Initially set each card translated fully off-screen to the right
-        cards.forEach((card, index) => {
-          gsap.set(card, {
+        // Card 0 starts in position so the stage is immediately populated with Card 01
+        gsap.set(cards[0], { x: 0, zIndex: 1 });
+        // Cards 1..N start off-screen to the right and slide in sequentially
+        for (let i = 1; i < cards.length; i++) {
+          gsap.set(cards[i], {
             x: () => window.innerWidth,
-            zIndex: index + 1,
+            zIndex: i + 1,
           });
-        });
+        }
 
         // Stacking timeline driven purely by vertical scroll distance
         const tl = gsap.timeline({
@@ -278,18 +281,18 @@ export default function WhatWeDo() {
           },
         });
 
-        // Each card enters and settles in sequence, stacking on top of previous cards
-        cards.forEach((card, i) => {
+        // Each subsequent card enters and settles in sequence, stacking on top
+        for (let i = 1; i < cards.length; i++) {
           tl.to(
-            card,
+            cards[i],
             {
               x: 0,
-              duration: 0.65,
+              duration: 0.8,
               ease: "power2.out",
             },
-            i
+            (i - 1) * 0.9
           );
-        });
+        }
       });
 
       // Reduced motion: Cards start in their settled stacked positions
@@ -310,7 +313,7 @@ export default function WhatWeDo() {
       ref={containerRef}
       id="capabilities"
       className="relative w-full bg-[#FAF8F5] text-[#2D2926]"
-      style={{ height: "400vh" }}
+      style={{ height: "320vh" }}
     >
       <style>{`
         #capabilities {
@@ -350,22 +353,26 @@ export default function WhatWeDo() {
         <div className="max-w-7xl mx-auto px-4 sm:px-8 w-full h-full flex flex-col justify-between relative z-10">
           {/* Section Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 pb-6 sm:pb-8 border-b border-black/10 shrink-0">
-            <div>
+            <div className="max-w-2xl">
               <div className="flex items-center gap-2.5 mb-2.5">
                 <div className="w-8 h-[2px] bg-[#AE917E]" />
                 <span className="text-[#AE917E] font-mono text-[10px] tracking-[0.3em] uppercase font-bold">
                   02 / Core Capabilities
                 </span>
               </div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-[#2D2926] tracking-[0.1em] uppercase">
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-display font-bold text-[#2D2926] tracking-[0.05em] uppercase mb-3">
                 What We <span className="text-[#AE917E] font-medium">Do</span>
               </h2>
+              <p className="text-stone-700 text-xs sm:text-sm md:text-base font-sans font-normal leading-relaxed">
+                From single-room interior transformations to multi-structure builds
+                across Nairobi, our work is defined by transparent coordination and
+                reliable delivery.
+              </p>
             </div>
-            <p className="text-stone-700 text-xs sm:text-sm md:text-base max-w-md font-sans font-normal leading-relaxed">
-              From single-room interior transformations to multi-structure builds
-              across Nairobi, our work is defined by transparent coordination and
-              reliable delivery.
-            </p>
+            <div className="hidden md:flex items-center gap-2 text-stone-500 font-mono text-[10px] uppercase tracking-widest pb-1 self-end">
+              <span className="w-2 h-2 rounded-full bg-[#AE917E] animate-pulse" />
+              <span>Full-Scope Capabilities</span>
+            </div>
           </div>
 
           {/* Cards Stage Container */}
@@ -412,7 +419,7 @@ export default function WhatWeDo() {
                       width: "var(--card-width)",
                       height: "var(--card-height)",
                       zIndex: isSelected ? 60 : index + 1,
-                      transform: "translateX(100vw)",
+                      transform: index === 0 ? "none" : "translateX(100vw)",
                       willChange: "transform",
                     }}
                     onClick={() => handleCardClick(index)}

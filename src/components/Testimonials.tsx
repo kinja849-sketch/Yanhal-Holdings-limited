@@ -251,7 +251,7 @@ export default function Testimonials() {
         </div>
 
         <div className="mt-14 sm:mt-20 pt-10 sm:pt-14 border-t border-stone-200 overflow-hidden">
-          <p className="text-center font-display text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.5em] uppercase text-stone-500 mb-8 sm:mb-12 font-bold">Partners in Excellence</p>
+          <p className="text-center font-display text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.5em] uppercase text-stone-500 mb-8 sm:mb-12 font-bold">With Excellence</p>
           
           <div 
             className="w-full overflow-hidden select-none flex bg-transparent"

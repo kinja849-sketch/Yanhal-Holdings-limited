@@ -1,14 +1,14 @@
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { gsap, ScrollTrigger } from "../lib/gsap";
+import { ScrollTrigger } from "../lib/gsap";
 
 interface ProcessStep {
   id: string;
   title: string;
   subtitle: string;
+  tagline: string;
   description: string;
-  details: string;
-  gains: string[];
+  deliverables: string[];
   icon: string;
   image: string;
 }
@@ -20,7 +20,6 @@ interface Waypoint {
 }
 
 export default function Process() {
-  const [selectedStep, setSelectedStep] = useState<ProcessStep | null>(null);
   const [activeStepIdx, setActiveStepIdx] = useState<number>(0);
   const [scrollProgress, setScrollProgress] = useState<number>(0);
   const [pathData, setPathData] = useState<string>("");
@@ -36,84 +35,84 @@ export default function Process() {
   const steps: ProcessStep[] = [
     {
       id: "01",
-      title: "Consultation & Project Understanding",
-      subtitle: "Initial Briefing / Site Visit",
-      description: "We engage in a detailed discussion to gather key information such as the purpose of the project, budget expectations, and preferred design direction.",
-      details: "When a client initiates a project, the first step is understanding exactly what they need—not just at surface level, but in terms of how the space will actually be used.\n\nDuring this stage, we engage in a detailed discussion to gather key information such as the purpose of the project, budget expectations, preferred design direction, and any constraints related to the site or timeline. If necessary, we conduct a site visit to assess physical conditions, measurements, accessibility, and any existing structures.\n\nThis stage is critical because it sets the foundation for everything that follows. Instead of rushing into design or construction, we ensure that all requirements are clearly defined and aligned from the beginning. This reduces misunderstandings, prevents costly changes later, and ensures that the final result matches what the client actually needs.",
-      gains: [
-        "Clear understanding of what is possible",
-        "Early guidance on budget and feasibility",
-        "Confidence that their project is being properly understood"
+      title: "Vibe Check & Ground Recon",
+      subtitle: "Briefing & Ground Recon",
+      tagline: "Zero Cap, Total Transparency",
+      description: "We lock in your vision, budget, and site reality upfront. Zero guesswork, zero mid-project surprises. Just crystal-clear blueprints and straight facts before a single hammer swings.",
+      deliverables: [
+        "Zero-fluff budget & timeline breakdown",
+        "Site LiDAR scan & structural reality check",
+        "Locked-in architectural brief from day one"
       ],
       icon: "architecture",
       image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790716176/Screenshot_2026-09-30_034301_xfvb6v.png"
     },
     {
       id: "02",
-      title: "Planning & Design Development",
-      subtitle: "Structured Planning / Space Optimization",
-      description: "We translate ideas into practical plans, focusing on creating a vision that is not only visually appealing but also functional and realistic to execute.",
-      details: "Once the project requirements are clear, we move into structured planning and design.\n\nAt this stage, we translate ideas into practical plans. This may include layout structuring, space optimization, and design direction depending on whether the project is construction, interior design, or renovation.\n\nThe focus here is on creating a plan that is not only visually appealing but also functional and realistic to execute. Every design decision is made with practicality in mind—ensuring that the final outcome works efficiently in real-world use.\n\nWe also define the scope of work in detail, outlining what will be done, what materials may be used, and how the project will progress.",
-      gains: [
-        "A clear vision of the final outcome",
-        "Structured plan before any work begins",
-        "Reduced risk of unexpected changes"
+      title: "Spatial Architecture & 3D Modeling",
+      subtitle: "3D CAD & Optimization",
+      tagline: "Form Meets Pure Function",
+      description: "Translating concepts into high-precision 3D architecture. Designs that don't just look fire on Pinterest, but actually function effortlessly in daily life. Zero wasted square meters.",
+      deliverables: [
+        "Hyper-realistic 3D walkthrough renders",
+        "Fluid spatial ergonomics & circulation",
+        "Precision MEP & structural schematics"
       ],
       icon: "polyline",
       image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790716175/Screenshot_2026-09-30_034308_ucty01.png"
     },
     {
       id: "03",
-      title: "Material Selection & Preparation",
-      subtitle: "Quality Sourcing / Site Readiness",
-      description: "We focus on selecting the right materials guided by durability and cost-effectiveness, while ensuring the site is fully prepared for work.",
-      details: "Before construction or installation begins, we focus on selecting the right materials and preparing the site.\n\nMaterial selection is guided by durability, cost-effectiveness, and suitability for the specific project. Rather than choosing materials purely for appearance, we ensure they are appropriate for long-term use and aligned with the project’s purpose.\n\nAt the same time, site preparation is carried out to ensure that the environment is ready for work. This may involve clearing the space, organizing tools and resources, and ensuring that all necessary elements are in place before execution begins.\n\nThis stage ensures that the project starts on a solid foundation, both in terms of materials and readiness.",
-      gains: [
-        "Assurance of quality materials",
-        "Better cost control",
-        "Smooth transition into execution"
+      title: "Material Curation & Spec Sourcing",
+      subtitle: "Spec Sourcing & Prep",
+      tagline: "Top-Tier Grade Only",
+      description: "We curate certified, high-grade materials built to outlast trends. No cheap knockoffs, no fake aesthetics—only tested porcelain, structural hardwoods, and reinforced steel prepped on-site.",
+      deliverables: [
+        "Factory-vetted durability & test certs",
+        "Transparent cost control with zero markup games",
+        "Site cleared, organized & 100% staging-ready"
       ],
       icon: "texture",
       image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790715900/Screenshot_2026-09-30_034316_tduwu7.png"
     },
     {
       id: "04",
-      title: "Construction / Execution Phase",
-      subtitle: "On-site Building / Managed Workflow",
-      description: "The actual building or transformation takes place. We coordinate labor and manage workflow to ensure progress remains consistent with the timeline.",
-      details: "This is where the actual building or transformation takes place.\n\nDuring this phase, all plans are put into action. The team handles on-site work including structural building, installations, finishing, and adjustments as required. Each stage of execution is carried out with attention to detail to ensure that the work meets the agreed standards.\n\nWe coordinate labor, manage workflow, and ensure that progress remains consistent with the timeline. Any necessary adjustments are communicated clearly to the client to maintain transparency.\n\nThe focus is not just on completing the work, but on doing it correctly and efficiently.",
-      gains: [
-        "Visible progress on their project",
-        "Managed workflow without needing to supervise everything",
-        "Confidence that work is being handled professionally"
+      title: "The Build: Heavy Lifting & Craft",
+      subtitle: "Structural Build & Execution",
+      tagline: "Engineered With Precision",
+      description: "Full-throttle structural execution and bespoke finishing. Managed with relentless on-site supervision, live milestone updates, and craft that permanently raises your property standard.",
+      deliverables: [
+        "Live progress tracking with supervisor on-site",
+        "Structural integrity verified at every level",
+        "Clean, synchronized multi-trade workflow"
       ],
       icon: "foundation",
       image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790716173/Screenshot_2026-09-30_034331_hs8akg.png"
     },
     {
       id: "05",
-      title: "Quality Check & Final Touches",
-      subtitle: "Standard Review / Detailed Adjustments",
-      description: "We carry out a thorough review to ensure everything meets the expected standard, correcting minor issues and making final adjustments.",
-      details: "Before handing over the project, we carry out a thorough review to ensure everything meets the expected standard.\n\nThis includes checking structural elements, finishes, fittings, and overall presentation. Any minor issues are corrected, and final adjustments are made to ensure the space is fully complete and ready for use.\n\nAttention is given to details that may not be obvious during construction but are important in the final result—such as alignment, finishing consistency, and usability.",
-      gains: [
-        "Assurance that the work is complete and properly finished",
-        "A polished final result",
-        "Reduced need for post-completion fixes"
+      title: "The Snag-List: 100% Locked",
+      subtitle: "Forensic Quality Inspection",
+      tagline: "Obsessive Quality Control",
+      description: "Every joint, gypsum line, LED channel, and seam inspected with forensic detail. If it’s even 1mm off, we fix it on the spot. We don't do 'good enough'—only flawless completion.",
+      deliverables: [
+        "Zero-tolerance alignment & finish inspection",
+        "Rigorous MEP, plumbing & electrical stress tests",
+        "White-glove polishing & architectural handover prep"
       ],
       icon: "verified",
       image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790715899/Screenshot_2026-09-30_034343_ll0q7j.png"
     },
     {
       id: "06",
-      title: "Project Handover & Client Support",
-      subtitle: "Final Delivery / Continued Guidance",
-      description: "We formally hand over the space and remain available for follow-up support to ensure confidence in using and maintaining the space.",
-      details: "Once the project is complete, we formally hand over the space to the client.\n\nAt this stage, the client is guided through the completed work to ensure everything aligns with expectations. Any final clarifications are addressed, and the client is given full access to the finished space.\n\nWe also remain available for follow-up support if needed, especially for minor adjustments or guidance related to the completed work.\n\nThe goal is to ensure that the client is not just satisfied at handover, but confident in using and maintaining the space moving forward.",
-      gains: [
-        "A fully completed, ready-to-use project",
-        "Clarity on what has been delivered",
-        "Continued support if needed"
+      title: "Handover & Keys In Hand",
+      subtitle: "Turnkey Delivery & Care",
+      tagline: "Ready To Live, Built To Last",
+      description: "We walk you through every finished detail, hand over the keys, and stay on speed-dial. 100% turnkey ready from second one, backed by genuine post-handover warranty and ongoing care.",
+      deliverables: [
+        "Complete walkthrough & documentation handover",
+        "100% turnkey operational from day one",
+        "Direct post-handover warranty & support line"
       ],
       icon: "key",
       image: "https://res.cloudinary.com/koc0fyuc/image/upload/w_1200,c_scale,q_auto:best,e_sharpen:100/v1790716172/Screenshot_2026-09-30_034353_gv6vkg.png"
@@ -139,15 +138,11 @@ export default function Process() {
       let x: number;
       if (desktop) {
         const cx = W / 2;
-        // S-curve weaving left and right between the alternating cards
         const curveOffset = Math.min(110, W * 0.12);
-        // Even indices (0, 2, 4): card is on left, swing toward left
-        // Odd indices (1, 3, 5): card is on right, swing toward right
         x = idx % 2 === 0 ? cx - curveOffset : cx + curveOffset;
       } else {
-        // Mobile single lane in the left margin with subtle mechanical weave
-        const baseMobileX = 28;
-        x = baseMobileX + (idx % 2 === 0 ? -4 : 4);
+        const baseMobileX = 24;
+        x = baseMobileX + (idx % 2 === 0 ? -3 : 3);
       }
 
       pts.push({ x, y, stepIdx: idx });
@@ -158,19 +153,17 @@ export default function Process() {
     setWaypoints(pts);
 
     // Build smooth cubic Bezier curve spline
-    const startX = desktop ? W / 2 : 28;
+    const startX = desktop ? W / 2 : 24;
     const startY = 0;
-    const endX = desktop ? W / 2 : 28;
+    const endX = desktop ? W / 2 : 24;
     const endY = H;
 
     let d = `M ${startX} ${startY}`;
 
-    // First transition from top center to first milestone
     const firstPt = pts[0];
     const dy0 = firstPt.y - startY;
     d += ` C ${startX} ${startY + dy0 * 0.5}, ${firstPt.x} ${firstPt.y - dy0 * 0.5}, ${firstPt.x} ${firstPt.y}`;
 
-    // Intermediate S-curve segments
     for (let i = 0; i < pts.length - 1; i++) {
       const pCurrent = pts[i];
       const pNext = pts[i + 1];
@@ -182,7 +175,6 @@ export default function Process() {
       d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${pNext.x} ${pNext.y}`;
     }
 
-    // Final segment from last milestone to bottom
     const lastPt = pts[pts.length - 1];
     const dyEnd = endY - lastPt.y;
     d += ` C ${lastPt.x} ${lastPt.y + dyEnd * 0.5}, ${endX} ${endY - dyEnd * 0.5}, ${endX} ${endY}`;
@@ -207,8 +199,7 @@ export default function Process() {
       observer.observe(mainRef.current);
     }
 
-    // Safety timeout for images settling
-    const t = setTimeout(calculatePath, 500);
+    const t = setTimeout(calculatePath, 400);
 
     return () => {
       window.removeEventListener("resize", handleResize);
@@ -217,7 +208,7 @@ export default function Process() {
     };
   }, [calculatePath]);
 
-  // ScrollTrigger drive animation along the SVG S-curve (maintaining path progression)
+  // ScrollTrigger drive animation along the SVG S-curve
   useEffect(() => {
     if (!mainRef.current || !pathRef.current || !pathData) return;
 
@@ -225,7 +216,6 @@ export default function Process() {
     const totalLength = path.getTotalLength();
     if (totalLength === 0) return;
 
-    // Set initial dasharray for active glowing paved path
     if (activePathRef.current) {
       activePathRef.current.style.strokeDasharray = `${totalLength}`;
       activePathRef.current.style.strokeDashoffset = `${totalLength}`;
@@ -243,12 +233,10 @@ export default function Process() {
         const currentDist = p * totalLength;
         const pt = path.getPointAtLength(currentDist);
 
-        // Update glowing paved road dashoffset
         if (activePathRef.current) {
           activePathRef.current.style.strokeDashoffset = `${totalLength - currentDist}`;
         }
 
-        // Determine active step index based on path progress
         if (waypoints.length > 0) {
           let closestIdx = 0;
           let minDiff = Infinity;
@@ -269,7 +257,6 @@ export default function Process() {
     };
   }, [pathData, waypoints]);
 
-  // Click handler to drive along path / scroll smoothly to a milestone
   const scrollToMilestone = (idx: number) => {
     const el = stepRefs.current[idx];
     if (el) {
@@ -305,7 +292,7 @@ export default function Process() {
               arrow_downward
             </span>
             <span className="text-white/90 text-[10px] sm:text-xs font-semibold tracking-wider uppercase">
-              Masterpiece Progression &bull; Stage {steps[activeStepIdx].id} / 06
+              Milestone Progression &bull; Stage {steps[activeStepIdx]?.id || "01"} / 06
             </span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#E0B9A0]" />
             <span className="text-[#E0B9A0] font-bold text-[10px] sm:text-xs">
@@ -315,12 +302,11 @@ export default function Process() {
         </div>
       </header>
 
-      <main ref={mainRef} className="relative py-14 sm:py-24 px-4 sm:px-8 max-w-7xl mx-auto">
+      <main ref={mainRef} className="relative py-14 sm:py-24 px-4 sm:px-8 max-w-7xl mx-auto box-border overflow-hidden">
         {/* Dynamic S-Curve SVG Construction Road */}
         <div className="absolute inset-0 pointer-events-none z-10 overflow-visible">
           <svg className="w-full h-full" style={{ overflow: "visible" }}>
             <defs>
-              {/* Electric Road Neon Glow Filter */}
               <filter id="road-glow" x="-30%" y="-30%" width="160%" height="160%">
                 <feGaussianBlur stdDeviation="6" result="blur" />
                 <feMerge>
@@ -328,7 +314,6 @@ export default function Process() {
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
-              {/* Construction Track Gradient */}
               <linearGradient id="paved-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#AE917E" />
                 <stop offset="50%" stopColor="#E0B9A0" />
@@ -343,7 +328,7 @@ export default function Process() {
                   d={pathData}
                   fill="none"
                   stroke="#E0B9A0"
-                  strokeWidth={isDesktop ? 32 : 20}
+                  strokeWidth={isDesktop ? 32 : 18}
                   strokeOpacity="0.08"
                   strokeLinecap="round"
                 />
@@ -353,7 +338,7 @@ export default function Process() {
                   d={pathData}
                   fill="none"
                   stroke="rgba(8, 8, 9, 0.65)"
-                  strokeWidth={isDesktop ? 16 : 10}
+                  strokeWidth={isDesktop ? 16 : 8}
                   strokeLinecap="round"
                 />
 
@@ -376,7 +361,7 @@ export default function Process() {
                   strokeWidth="1"
                 />
 
-                {/* Active Paved Glowing Neon Line (Fills behind Bulldozer) */}
+                {/* Active Paved Glowing Neon Line */}
                 <path
                   ref={activePathRef}
                   d={pathData}
@@ -396,7 +381,6 @@ export default function Process() {
               const isCurrent = activeStepIdx === idx;
               return (
                 <g key={idx} className="cursor-pointer pointer-events-auto" onClick={() => scrollToMilestone(idx)}>
-                  {/* Outer Radar Pulse for Active Milestone */}
                   {isCurrent && (
                     <circle
                       cx={wp.x}
@@ -409,7 +393,6 @@ export default function Process() {
                       className="animate-ping"
                     />
                   )}
-                  {/* Milestone Center Node */}
                   <circle
                     cx={wp.x}
                     cy={wp.y}
@@ -420,7 +403,6 @@ export default function Process() {
                     filter={isPassed ? "url(#road-glow)" : undefined}
                     className="transition-all duration-500"
                   />
-                  {/* Milestone Index Text on Road */}
                   {isDesktop && (
                     <text
                       x={wp.x + (idx % 2 === 0 ? 16 : -16)}
@@ -442,7 +424,7 @@ export default function Process() {
         </div>
 
         {/* Milestone Steps List */}
-        <div className="space-y-16 sm:space-y-24 lg:space-y-36 relative z-20">
+        <div className="space-y-16 sm:space-y-24 lg:space-y-36 relative z-20 box-border">
           {steps.map((step, idx) => {
             const isCurrent = activeStepIdx === idx;
             const isPassed = activeStepIdx >= idx;
@@ -455,15 +437,15 @@ export default function Process() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8, ease: [0.2, 0, 0.2, 1] }}
-                className={`relative flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-16 group ${
+                className={`relative flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-14 group ${
                   idx % 2 !== 0 ? 'lg:flex-row-reverse' : ''
-                } pl-10 sm:pl-12 lg:pl-0`}
+                } pl-8 sm:pl-10 lg:pl-0 w-full max-w-full box-border`}
               >
-                {/* Left/Right Media Card */}
-                <div className="w-full lg:w-5/12 order-2 lg:order-1">
+                {/* Media Card */}
+                <div className="w-full lg:w-5/12 order-2 lg:order-1 max-w-full">
                   <div 
-                    onClick={() => setSelectedStep(step)}
-                    className={`relative group overflow-hidden bg-[#181514]/80 cursor-pointer rounded-2xl border transition-all duration-500 shadow-2xl ${
+                    onClick={() => scrollToMilestone(idx)}
+                    className={`relative group overflow-hidden bg-[#181514]/90 rounded-2xl border transition-all duration-500 shadow-2xl ${
                       isCurrent 
                         ? 'border-[#E0B9A0] ring-2 ring-[#E0B9A0]/40 shadow-[0_0_35px_rgba(224,185,160,0.25)] scale-[1.01]' 
                         : isPassed 
@@ -473,8 +455,8 @@ export default function Process() {
                   >
                     <img 
                       alt={step.title} 
-                      className={`w-full aspect-video object-cover transition-all duration-1000 ${
-                        isCurrent ? 'opacity-95 scale-[1.03]' : 'opacity-75 group-hover:opacity-100'
+                      className={`w-full aspect-[16/10] sm:aspect-video object-cover transition-all duration-700 ${
+                        isCurrent ? 'opacity-95 scale-[1.02]' : 'opacity-80 group-hover:opacity-100 group-hover:scale-[1.02]'
                       }`} 
                       src={step.image}
                       referrerPolicy="no-referrer"
@@ -486,7 +468,7 @@ export default function Process() {
                       <div className={`p-2 rounded-xl backdrop-blur-md transition-colors ${
                         isCurrent ? 'bg-[#E0B9A0]/20 border border-[#E0B9A0]' : 'bg-[#181514]/60 border border-white/15'
                       }`}>
-                        <span className="material-symbols-outlined text-xl sm:text-3xl text-[#E0B9A0] drop-shadow-md">
+                        <span className="material-symbols-outlined text-xl sm:text-2xl text-[#E0B9A0] drop-shadow-md">
                           {step.icon}
                         </span>
                       </div>
@@ -501,12 +483,6 @@ export default function Process() {
                         </span>
                       </div>
                     )}
-
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="font-mono text-white text-[9px] tracking-[0.25em] border border-[#E0B9A0] text-[#E0B9A0] px-5 py-2.5 uppercase rounded-full bg-[#181514]/80 backdrop-blur-xs font-bold">
-                        Explore Stage
-                      </span>
-                    </div>
                   </div>
                 </div>
 
@@ -521,10 +497,10 @@ export default function Process() {
                   }`}></div>
                 </div>
 
-                {/* Content Details */}
-                <div className={`w-full lg:w-5/12 order-1 lg:order-2 ${idx % 2 !== 0 ? 'lg:text-right' : ''}`}>
-                  <div className={`flex items-center gap-3 sm:gap-4 mb-2 sm:mb-4 ${idx % 2 !== 0 ? 'lg:flex-row-reverse' : ''}`}>
-                    <span className={`font-display text-4xl sm:text-6xl md:text-7xl leading-none font-bold transition-colors duration-500 ${
+                {/* Content Details: Direct, Punchy, Self-Contained */}
+                <div className={`w-full lg:w-5/12 order-1 lg:order-2 max-w-full ${idx % 2 !== 0 ? 'lg:text-right' : ''}`}>
+                  <div className={`flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3 ${idx % 2 !== 0 ? 'lg:flex-row-reverse' : ''}`}>
+                    <span className={`font-display text-4xl sm:text-5xl md:text-6xl leading-none font-bold transition-colors duration-500 ${
                       isCurrent ? 'text-[#E0B9A0] drop-shadow-[0_0_15px_rgba(224,185,160,0.4)]' : 'text-[#E0B9A0]/80'
                     }`}>
                       {step.id}
@@ -534,110 +510,42 @@ export default function Process() {
                     }`}></div>
                   </div>
 
-                  <h3 className="font-display text-lg sm:text-xl md:text-2xl mb-2 sm:mb-4 tracking-wider uppercase text-white leading-tight font-bold">
+                  <h3 className="font-display text-lg sm:text-xl md:text-2xl mb-1.5 sm:mb-2 tracking-wider uppercase text-white leading-tight font-bold">
                     {step.title}
                   </h3>
                   
-                  <p className="text-[#E0B9A0] font-mono text-[8.5px] sm:text-[10px] tracking-[0.18em] sm:tracking-[0.3em] uppercase mb-3 sm:mb-6 font-bold">
-                    {step.subtitle}
-                  </p>
+                  <div className={`flex items-center gap-2 mb-3 sm:mb-4 ${idx % 2 !== 0 ? 'lg:justify-end' : ''}`}>
+                    <span className="text-[#E0B9A0] font-mono text-[9px] sm:text-[10px] tracking-[0.2em] uppercase font-bold">
+                      {step.subtitle}
+                    </span>
+                    <span className="text-white/30 text-xs">&bull;</span>
+                    <span className="text-stone-400 font-mono text-[9px] tracking-wider uppercase">
+                      {step.tagline}
+                    </span>
+                  </div>
 
-                  <p className={`text-stone-200 font-normal text-xs sm:text-sm md:text-base leading-relaxed max-w-md ${idx % 2 !== 0 ? 'lg:ml-auto' : ''}`}>
+                  <p className={`text-stone-200 font-normal text-xs sm:text-sm md:text-base leading-relaxed max-w-lg ${idx % 2 !== 0 ? 'lg:ml-auto' : ''}`}>
                     {step.description}
                   </p>
 
-                  <button 
-                    onClick={() => setSelectedStep(step)}
-                    className={`mt-4 sm:mt-8 flex items-center gap-3 sm:gap-4 group-hover:gap-5 transition-all duration-500 text-[#E0B9A0] font-mono text-[9px] tracking-[0.25em] uppercase cursor-pointer font-bold ${
-                      idx % 2 !== 0 ? 'lg:flex-row-reverse' : ''
-                    } active:scale-95`}
-                  >
-                    <div className="h-[2px] w-6 sm:w-8 bg-[#E0B9A0]"></div>
-                    <span>Explore Stage</span>
-                  </button>
+                  {/* Complete Deliverables Visible Upfront — No Modal Needed */}
+                  <div className={`flex flex-wrap gap-2 mt-4 sm:mt-5 ${idx % 2 !== 0 ? 'lg:justify-end' : ''}`}>
+                    {step.deliverables.map((item, i) => (
+                      <span 
+                        key={i} 
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-stone-300 font-mono text-[9px] sm:text-[10px] tracking-wider"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#E0B9A0]" />
+                        {item}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </motion.section>
             );
           })}
         </div>
       </main>
-
-      {/* Process Detail Modal */}
-      <AnimatePresence>
-        {selectedStep && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 md:p-10 bg-black/90 backdrop-blur-sm"
-          >
-            <motion.div 
-              initial={{ scale: 0.96, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.96, opacity: 0, y: 20 }}
-              transition={{ duration: 0.4, ease: [0.2, 0, 0.2, 1] }}
-              className="bg-surface-dark w-full sm:max-w-5xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto border-0 sm:border sm:border-white/10 relative no-scrollbar rounded-xs"
-            >
-              <button 
-                onClick={() => setSelectedStep(null)}
-                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 text-white/60 hover:text-primary transition-colors bg-black/40 p-2 rounded-full border border-white/10 cursor-pointer"
-                aria-label="Close modal"
-              >
-                <span className="material-symbols-outlined text-2xl">close</span>
-              </button>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2">
-                <div className="h-48 sm:h-64 md:h-80 lg:h-full relative">
-                  <img 
-                    src={selectedStep.image} 
-                    alt={selectedStep.title} 
-                    className="w-full h-full object-cover grayscale-[0.5]"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-surface-dark to-transparent lg:hidden"></div>
-                </div>
-                
-                <div className="p-5 sm:p-8 md:p-12 space-y-6 sm:space-y-8">
-                  <div>
-                    <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-6">
-                      <span className="text-primary font-display text-[9px] sm:text-xs tracking-[0.35em] sm:tracking-[0.5em] uppercase leading-none">
-                        {selectedStep.id} / PROCESS STAGE
-                      </span>
-                    </div>
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-white uppercase tracking-tighter mb-4 sm:mb-6 leading-tight">
-                      {selectedStep.title}
-                    </h2>
-                    <div className="text-slate-300 text-xs sm:text-sm leading-relaxed font-light whitespace-pre-line">
-                      {selectedStep.details}
-                    </div>
-                  </div>
-
-                  <div className="bg-white/5 p-4 sm:p-6 border-l-2 border-primary rounded-xs">
-                    <h4 className="text-primary font-display text-[8.5px] sm:text-[10px] tracking-[0.25em] sm:tracking-[0.3em] uppercase mb-3 sm:mb-4 leading-none">
-                      What You Gain
-                    </h4>
-                    <ul className="space-y-2 sm:space-y-3">
-                      {selectedStep.gains.map((gain, i) => (
-                        <li key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-400">
-                          <span className="text-primary mt-1 text-[8px]">●</span>
-                          {gain}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <button 
-                    onClick={() => setSelectedStep(null)}
-                    className="w-auto inline-flex items-center justify-center px-8 py-3 rounded-full font-mono text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase border border-[#E0B9A0] bg-[#E0B9A0] text-[#2D2926] hover:bg-[#FAF8F5] transition-colors active:scale-95 shadow-[0_0_15px_rgba(224,185,160,0.2)] cursor-pointer"
-                  >
-                    Close Stage
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </section>
   );
 }

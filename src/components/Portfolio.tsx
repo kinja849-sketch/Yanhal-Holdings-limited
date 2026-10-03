@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "motion/react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { gsap, useGSAP } from "../lib/gsap";
 
 interface Project {
@@ -17,6 +17,29 @@ export default function Portfolio() {
   const [isRestorationModalOpen, setIsRestorationModalOpen] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Pause Lenis smooth scrolling and lock body scroll when any modal is open
+  useEffect(() => {
+    const isModalOpen = !!selectedProject || isRestorationModalOpen;
+    const lenis = (window as any).__lenis;
+    if (isModalOpen) {
+      if (lenis) {
+        try { lenis.stop(); } catch (_) {}
+      }
+      document.body.style.overflow = "hidden";
+    } else {
+      if (lenis) {
+        try { lenis.start(); } catch (_) {}
+      }
+      document.body.style.overflow = "";
+    }
+    return () => {
+      if (lenis) {
+        try { lenis.start(); } catch (_) {}
+      }
+      document.body.style.overflow = "";
+    };
+  }, [selectedProject, isRestorationModalOpen]);
 
   const restorationContent = [
     "THE ART OF REBIRTH THROUGH PURPOSEFUL RENOVATION",
@@ -36,21 +59,43 @@ export default function Portfolio() {
       const track = scrollRef.current;
       if (!section || !track) return;
 
-      const getScrollLength = () => Math.max(0, track.scrollWidth - window.innerWidth);
+      const mm = gsap.matchMedia();
 
-      gsap.to(track, {
-        x: () => -getScrollLength(),
-        ease: "none",
-        scrollTrigger: {
-          trigger: section,
-          pin: true,
-          start: "top top",
-          end: () => `+=${getScrollLength()}`,
-          scrub: true,
-          invalidateOnRefresh: true,
-          anticipatePin: 1,
-          refreshPriority: 15,
-        },
+      // Desktop: Measured horizontal showcase timeline with initial pause, smooth glide, and exit pause
+      mm.add("(min-width: 1024px)", () => {
+        const getScrollLength = () => Math.max(0, track.scrollWidth - window.innerWidth + 80);
+
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: section,
+            pin: true,
+            pinSpacing: true,
+            start: "top top",
+            end: () => `+=${Math.round(Math.max(window.innerHeight * 2.8, getScrollLength() * 1.6))}`,
+            scrub: 1.2,
+            invalidateOnRefresh: true,
+            anticipatePin: 1,
+            refreshPriority: 20,
+          },
+        });
+
+        // 1. Initial dwell: allows the user to see the showcase header & Card 01 before movement begins
+        tl.to({}, { duration: 0.35 });
+
+        // 2. Smooth, graceful horizontal progression through the showcase
+        tl.to(track, {
+          x: () => -getScrollLength(),
+          ease: "power1.inOut",
+          duration: 2.2,
+        });
+
+        // 3. Final dwell: allows the user to take in the final project before unpinning
+        tl.to({}, { duration: 0.35 });
+      });
+
+      // Mobile & Tablet: Natural touch swipe without pinning interference
+      mm.add("(max-width: 1023px)", () => {
+        gsap.set(track, { clearProps: "transform" });
       });
     },
     { scope: sectionRef }
@@ -146,15 +191,15 @@ export default function Portfolio() {
     <section 
       ref={sectionRef}
       id="portfolio" 
-      className="py-18 sm:py-24 lg:py-28 overflow-hidden bg-[#2D2926] text-[#FAF8F5] relative"
+      className="h-screen max-h-screen flex flex-col justify-between overflow-hidden bg-[#2D2926] text-[#FAF8F5] relative py-6 sm:py-8 lg:py-10"
     >
-      <div className="px-6 sm:px-10 mb-10 sm:mb-14 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 sm:gap-8">
+      <div className="px-6 sm:px-12 mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-8 shrink-0">
         <div>
-          <span className="text-[#E0B9A0] font-display text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em] mb-3 sm:mb-4 block uppercase leading-none flex items-center gap-2 font-bold">
+          <span className="text-[#E0B9A0] font-display text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em] mb-2 sm:mb-3 block uppercase leading-none flex items-center gap-2 font-bold">
             <span className="w-1.5 h-1.5 rounded-full bg-[#E0B9A0] shadow-[0_0_6px_#E0B9A0]" />
             The Portfolio &bull; 09
           </span>
-          <h3 className="font-display text-3xl sm:text-4xl text-white tracking-tighter uppercase leading-none font-bold">
+          <h3 className="font-display text-3xl sm:text-4xl lg:text-5xl text-white tracking-tighter uppercase leading-none font-bold">
             Project <span className="text-[#E0B9A0] font-medium">Showcase</span>
           </h3>
         </div>
@@ -176,36 +221,38 @@ export default function Portfolio() {
         </div>
       </div>
 
-      <div 
-        ref={scrollRef}
-        style={{ width: "max-content", willChange: "transform" }}
-        className="flex w-max no-scrollbar gap-6 sm:gap-8 px-6 sm:px-10 pb-8 snap-x snap-mandatory"
-      >
-        {projects.map((project, idx) => (
-          <div 
-            key={idx} 
-            onClick={() => setSelectedProject(project)}
-            className="snap-center min-w-[85vw] sm:min-w-[55vw] lg:min-w-[38vw] xl:min-w-[420px] group relative h-[420px] sm:h-[480px] lg:h-[520px] border border-white/10 transition-all duration-500 hover:border-[#E0B9A0]/70 hover:shadow-[0_0_30px_rgba(224,185,160,0.15)] overflow-hidden cursor-pointer rounded-xl bg-[#1E1B18]"
-          >
-            <img 
-              alt={project.title} 
-              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
-              src={project.image}
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent"></div>
-            <div className="absolute bottom-0 left-0 p-5 sm:p-8 md:p-12 w-full flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-6">
-              <div className="max-w-md">
-                <span className="text-[#E0B9A0] font-mono text-[9px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] uppercase mb-2 sm:mb-3 block font-semibold">{project.location}</span>
-                <h4 className="text-white font-display text-2xl sm:text-3xl md:text-5xl font-bold tracking-tighter uppercase leading-tight">{project.title}</h4>
-                <p className="text-stone-300 text-[10px] sm:text-[11px] mt-2 sm:mt-4 max-w-xs uppercase tracking-widest leading-relaxed hidden sm:block">{project.description}</p>
+      <div className="flex-1 flex items-center min-h-0 w-full overflow-hidden">
+        <div 
+          ref={scrollRef}
+          style={{ width: "max-content", willChange: "transform" }}
+          className="flex w-max no-scrollbar gap-6 sm:gap-8 px-6 sm:px-12 snap-x snap-mandatory overflow-x-auto lg:overflow-x-visible items-center"
+        >
+          {projects.map((project, idx) => (
+            <div 
+              key={idx} 
+              onClick={() => setSelectedProject(project)}
+              className="snap-center min-w-[85vw] sm:min-w-[50vw] lg:min-w-[36vw] xl:min-w-[460px] group relative h-[58vh] sm:h-[62vh] min-h-[460px] max-h-[660px] border border-white/10 transition-all duration-500 hover:border-[#E0B9A0]/70 hover:shadow-[0_0_30px_rgba(224,185,160,0.15)] overflow-hidden cursor-pointer rounded-2xl bg-[#1E1B18]"
+            >
+              <img 
+                alt={project.title} 
+                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
+                src={project.image}
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 p-6 sm:p-8 md:p-10 w-full flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-6">
+                <div className="max-w-md">
+                  <span className="text-[#E0B9A0] font-mono text-[9px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] uppercase mb-2 sm:mb-3 block font-semibold">{project.location}</span>
+                  <h4 className="text-white font-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-tighter uppercase leading-tight">{project.title}</h4>
+                  <p className="text-stone-300 text-[10px] sm:text-[11px] mt-2 sm:mt-3 max-w-xs uppercase tracking-widest leading-relaxed hidden sm:block">{project.description}</p>
+                </div>
+                <button className="w-10 h-10 sm:w-12 md:w-13 sm:h-12 md:h-13 rounded-full border border-[#E0B9A0]/40 bg-[#E0B9A0]/10 flex items-center justify-center group-hover:bg-[#E0B9A0] group-hover:text-[#2D2926] transition-all duration-500 shrink-0 self-end sm:self-auto shadow-[0_0_15px_rgba(224,185,160,0.15)]">
+                  <span className="material-symbols-outlined text-[#E0B9A0] group-hover:text-[#2D2926] text-lg sm:text-xl">arrow_outward</span>
+                </button>
               </div>
-              <button className="w-10 h-10 sm:w-13 md:w-14 sm:h-13 md:h-14 rounded-full border border-[#E0B9A0]/40 bg-[#E0B9A0]/10 flex items-center justify-center group-hover:bg-[#E0B9A0] group-hover:text-[#2D2926] transition-all duration-500 shrink-0 self-end sm:self-auto shadow-[0_0_15px_rgba(224,185,160,0.15)]">
-                <span className="material-symbols-outlined text-[#E0B9A0] group-hover:text-[#2D2926] text-lg sm:text-xl">arrow_outward</span>
-              </button>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Project Detail Modal */}
@@ -215,64 +262,71 @@ export default function Portfolio() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-6 md:p-10 bg-black/90 backdrop-blur-sm"
+            data-lenis-prevent="true"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 md:p-10 bg-black/90 backdrop-blur-md overflow-hidden"
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              transition={{ duration: 0.5, ease: [0.2, 0, 0.2, 1] }}
-              className="bg-surface-dark w-full sm:max-w-5xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto border-0 sm:border sm:border-white/10 relative no-scrollbar"
+              transition={{ duration: 0.35, ease: [0.2, 0, 0.2, 1] }}
+              data-lenis-prevent="true"
+              onWheel={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              className="bg-[#1E1B18] w-full sm:max-w-5xl h-full sm:h-auto sm:max-h-[88vh] overflow-y-auto border border-white/10 relative rounded-2xl shadow-2xl flex flex-col"
             >
               <button 
                 onClick={() => setSelectedProject(null)}
-                className="absolute top-4 sm:top-6 right-4 sm:right-6 z-50 text-white/50 hover:text-primary transition-colors bg-black/40 sm:bg-transparent p-2 rounded-full"
+                className="absolute top-4 sm:top-6 right-4 sm:right-6 z-50 text-white/60 hover:text-[#E0B9A0] transition-colors bg-black/50 p-2.5 rounded-full cursor-pointer shadow-md"
+                aria-label="Close Showcase Modal"
               >
                 <span className="material-symbols-outlined text-2xl sm:text-3xl">close</span>
               </button>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2">
-                <div className="h-60 sm:h-[380px] lg:h-full min-h-[240px] relative">
+              <div className="grid grid-cols-1 lg:grid-cols-2 flex-1">
+                <div className="h-64 sm:h-[400px] lg:h-auto lg:min-h-full relative shrink-0">
                   <img 
                     src={selectedProject.image} 
                     alt={selectedProject.title} 
-                    className="w-full h-full object-cover grayscale-[0.5]"
+                    className="w-full h-full object-cover grayscale-[0.3]"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-surface-dark to-transparent lg:hidden"></div>
+                  <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#1E1B18] to-transparent lg:hidden"></div>
                 </div>
                 
-                <div className="p-6 sm:p-10 md:p-12 space-y-6 sm:space-y-10">
+                <div className="p-6 sm:p-10 md:p-12 space-y-6 sm:space-y-8 flex-1">
                   <div>
-                    <div className="flex items-center gap-4 mb-4 sm:mb-6">
-                      <span className="text-primary font-display text-[10px] sm:text-xs tracking-[0.4em] sm:tracking-[0.5em] uppercase leading-none">{selectedProject.location}</span>
+                    <div className="flex items-center gap-4 mb-3 sm:mb-4">
+                      <span className="text-[#E0B9A0] font-mono text-[10px] sm:text-xs tracking-[0.4em] uppercase leading-none font-semibold">{selectedProject.location}</span>
                     </div>
-                    <h2 className="text-2xl sm:text-4xl font-display font-bold text-white uppercase tracking-tighter mb-6 sm:mb-8 leading-tight">
+                    <h2 className="text-2xl sm:text-4xl font-display font-bold text-white uppercase tracking-tighter mb-4 sm:mb-6 leading-tight">
                       {selectedProject.title}
                     </h2>
-                    <p className="text-slate-300 text-sm leading-relaxed font-light whitespace-pre-line">
+                    <p className="text-stone-300 text-xs sm:text-sm leading-relaxed font-light whitespace-pre-line">
                       {selectedProject.details}
                     </p>
                   </div>
 
-                  <div className="space-y-6">
-                    <h4 className="text-primary font-display text-[9px] sm:text-[10px] tracking-[0.3em] uppercase border-b border-primary/20 pb-2">Key Highlights</h4>
-                    <ul className="space-y-3">
+                  <div className="space-y-4">
+                    <h4 className="text-[#E0B9A0] font-display text-[9px] sm:text-[10px] tracking-[0.3em] uppercase border-b border-[#E0B9A0]/20 pb-2 font-bold">Key Highlights</h4>
+                    <ul className="space-y-2.5">
                       {selectedProject.keyPoints.map((point, i) => (
-                        <li key={i} className="flex items-start gap-3 text-xs sm:text-sm text-slate-400">
-                          <span className="text-primary mt-1 text-[8px]">●</span>
+                        <li key={i} className="flex items-start gap-3 text-xs sm:text-sm text-stone-300 font-light">
+                          <span className="text-[#E0B9A0] mt-1 text-[8px]">●</span>
                           {point}
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  <div className="bg-white/5 p-6 sm:p-8 border-l-2 border-[#E0B9A0] rounded-lg">
-                    <h4 className="text-white font-bold text-xs sm:text-sm mb-1 sm:mb-2">Final Result</h4>
-                    <p className="text-stone-300 text-xs sm:text-sm italic">"{selectedProject.result}"</p>
+                  <div className="bg-white/5 p-5 sm:p-6 border-l-2 border-[#E0B9A0] rounded-lg">
+                    <h4 className="text-white font-bold text-xs sm:text-sm mb-1">Final Result</h4>
+                    <p className="text-stone-300 text-xs sm:text-sm italic font-light">"{selectedProject.result}"</p>
                   </div>
 
-                  <div className="pt-4 pb-8 sm:pb-0 flex justify-center sm:justify-start">
+                  <div className="pt-2 pb-6 sm:pb-2 flex justify-center sm:justify-start">
                     <button 
                       onClick={() => setSelectedProject(null)}
                       className="w-auto inline-flex items-center justify-center px-8 py-3 rounded-full font-mono text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase border border-[#E0B9A0] bg-[#E0B9A0] text-[#2D2926] hover:bg-white transition-colors active:scale-95 shadow-lg cursor-pointer"
@@ -294,6 +348,9 @@ export default function Portfolio() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            data-lenis-prevent="true"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
             className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-6 md:p-10 bg-black/95 backdrop-blur-md"
           >
             <motion.div 
@@ -301,7 +358,10 @@ export default function Portfolio() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               transition={{ duration: 0.5, ease: [0.2, 0, 0.2, 1] }}
-              className="bg-[#1E1B18] w-full sm:max-w-4xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto border-0 sm:border sm:border-white/10 relative no-scrollbar p-6 sm:p-12 md:p-16 rounded-2xl"
+              data-lenis-prevent="true"
+              onWheel={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              className="bg-[#1E1B18] w-full sm:max-w-4xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto border-0 sm:border sm:border-white/10 relative p-6 sm:p-12 md:p-16 rounded-2xl"
             >
               <button 
                 onClick={() => setIsRestorationModalOpen(false)}

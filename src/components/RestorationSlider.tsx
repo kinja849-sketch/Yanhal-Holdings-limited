@@ -225,10 +225,10 @@ export default function RestorationSlider() {
             rectEl.setAttribute("ry", cornerRadius.toFixed(1));
           }
 
-          // Tint overlay per bar
+          // Tint overlay per bar - refined to 0.28 so the video is immediately luminous and clearly visible
           const tintEl = tintsRef.current[n];
           if (tintEl) {
-            const tintOpacity = 0.88 * (1 - barRiseT);
+            const tintOpacity = 0.28 * (1 - barRiseT);
             tintEl.style.opacity = tintOpacity.toFixed(3);
             if (tintOpacity > 0.005) {
               tintEl.style.display = "block";
@@ -289,6 +289,7 @@ export default function RestorationSlider() {
         pinSpacing: true,
         scrub: 1,
         invalidateOnRefresh: true,
+        anticipatePin: 1,
         refreshPriority: 10,
         onUpdate: (self) => {
           renderFrame(self.progress, performance.now());
@@ -316,8 +317,11 @@ export default function RestorationSlider() {
     <section
       ref={containerRef}
       id="arts-of-rebirth"
-      className="relative w-full h-screen min-h-[640px] bg-[#080809] text-[#FAF8F5] overflow-hidden select-none flex flex-col justify-center items-center"
-      style={{ willChange: "transform" }}
+      className="relative w-full h-screen min-h-[640px] text-[#FAF8F5] overflow-hidden select-none flex flex-col justify-center items-center"
+      style={{
+        willChange: "transform",
+        background: "radial-gradient(ellipse at 50% 45%, #181514 0%, #080809 100%)",
+      }}
     >
       {/* Dynamic SVG ClipPath with 7 Rects in userSpaceOnUse */}
       <svg
@@ -345,7 +349,7 @@ export default function RestorationSlider() {
       >
         <span className="text-[#E0B9A0] font-display text-[9px] sm:text-[11px] md:text-xs tracking-[0.45em] sm:tracking-[0.55em] uppercase leading-none block font-bold mb-3 sm:mb-5 drop-shadow-[0_0_12px_rgba(224,185,160,0.35)] flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[#E0B9A0] shadow-[0_0_8px_#E0B9A0]" />
-          RESTORATION SERIES &bull; 09
+          RESTORATION SERIES &bull; 10
         </span>
 
         <h2 className="font-display text-4xl sm:text-7xl md:text-8xl lg:text-9xl text-white tracking-tighter uppercase leading-[0.92] font-black drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)] max-w-6xl">

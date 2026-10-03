@@ -318,7 +318,7 @@ export default function Services() {
           scrub: 0.5,
           invalidateOnRefresh: true,
           anticipatePin: 1,
-          refreshPriority: 10,
+          refreshPriority: 30,
           onUpdate: (self) => {
             lastProgress = self.progress;
             // Progress mapping:

@@ -43,7 +43,7 @@ export default function YanhalBot() {
 
   // Mobile viewport tracking for dynamic browser chrome & virtual keyboard
   const [isMobile, setIsMobile] = useState(false);
-  const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
+  const [viewportData, setViewportData] = useState<{ height: number; top: number } | null>(null);
 
   const isVoiceToVoiceRef = useRef(isVoiceToVoice);
   useEffect(() => {
@@ -55,8 +55,13 @@ export default function YanhalBot() {
     voiceStatusRef.current = voiceStatus;
   }, [voiceStatus]);
 
-  // Position for draggable circular floating button
-  const [pos, setPos] = useState({ x: 28, y: 110 });
+  // Position for draggable circular floating button (standard bottom-right anchor)
+  const [pos, setPos] = useState(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 640) {
+      return { x: 12, y: 14 };
+    }
+    return { x: 20, y: 24 };
+  });
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, posX: 0, posY: 0 });
 
@@ -98,9 +103,12 @@ export default function YanhalBot() {
       const mobile = window.innerWidth < 640;
       setIsMobile(mobile);
       if (mobile && window.visualViewport) {
-        setVisualViewportHeight(window.visualViewport.height);
+        setViewportData({
+          height: window.visualViewport.height,
+          top: window.visualViewport.offsetTop,
+        });
       } else {
-        setVisualViewportHeight(null);
+        setViewportData(null);
       }
     };
 
@@ -129,22 +137,32 @@ export default function YanhalBot() {
     if (chatScrollRef.current && messages.length > 0) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
-  }, [visualViewportHeight]);
+  }, [viewportData?.height]);
 
-  // Lock background scroll and pause Lenis engine when modal is active
+  // Robust mobile body scroll lock: preserves exact scroll position without shifting or jumping
+  const scrollPosRef = useRef(0);
   useEffect(() => {
     const isModalActive = isOpen || showOwnerView;
     if (isModalActive) {
-      document.documentElement.style.overflow = "hidden";
+      scrollPosRef.current = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollPosRef.current}px`;
+      document.body.style.width = "100%";
       document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
       if (typeof window !== "undefined" && (window as any).__lenis) {
         try {
           (window as any).__lenis.stop();
         } catch (_) {}
       }
     } else {
-      document.documentElement.style.overflow = "";
+      const prevY = scrollPosRef.current;
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
       document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      window.scrollTo(0, prevY);
       if (typeof window !== "undefined" && (window as any).__lenis) {
         try {
           (window as any).__lenis.start();
@@ -152,8 +170,11 @@ export default function YanhalBot() {
       }
     }
     return () => {
-      document.documentElement.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
       document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
       if (typeof window !== "undefined" && (window as any).__lenis) {
         try {
           (window as any).__lenis.start();
@@ -628,7 +649,7 @@ export default function YanhalBot() {
           touchAction: "none",
         }}
         onPointerDown={handlePointerDown}
-        className="select-none flex items-center gap-2 group cursor-grab active:cursor-grabbing"
+        className="select-none flex flex-row-reverse items-center gap-2 group cursor-grab active:cursor-grabbing"
       >
         {/* Soft luxury ambient glow */}
         <div className="absolute inset-0 rounded-full bg-[#E0B9A0] opacity-25 blur-xl group-hover:opacity-50 transition-opacity pointer-events-none" />
@@ -641,7 +662,7 @@ export default function YanhalBot() {
               setIsOpen(true);
             }
           }}
-          className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-[#121110] hover:bg-[#1f1d1b] border-2 border-[#E0B9A0] hover:border-[#FAF8F5] text-white flex items-center justify-center shadow-[0_12px_45px_rgba(0,0,0,0.75)] transition-all duration-300 transform group-hover:scale-105 p-2.5"
+          className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#121110] hover:bg-[#1f1d1b] border-2 border-[#E0B9A0] hover:border-[#FAF8F5] text-white flex items-center justify-center shadow-[0_12px_45px_rgba(0,0,0,0.75)] transition-all duration-300 transform group-hover:scale-105 p-1.5 sm:p-2"
           aria-label="Open Bot"
           title="Open Bot"
         >
@@ -651,7 +672,7 @@ export default function YanhalBot() {
           </div>
         </button>
 
-        {/* One-Tap 'Bot' Tag beside the circle */}
+        {/* One-Tap 'Bot' Tag beside the circle on tablet/desktop */}
         <button
           type="button"
           onClick={() => {
@@ -659,7 +680,7 @@ export default function YanhalBot() {
               setIsOpen(true);
             }
           }}
-          className="bg-[#121110]/95 hover:bg-[#2D2926] border border-[#E0B9A0]/70 text-[#FAF8F5] text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-md transition-all group-hover:border-[#E0B9A0]"
+          className="hidden sm:inline-flex bg-[#121110]/95 hover:bg-[#2D2926] border border-[#E0B9A0]/70 text-[#FAF8F5] text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-md transition-all group-hover:border-[#E0B9A0]"
         >
           Bot
         </button>
@@ -684,7 +705,19 @@ export default function YanhalBot() {
             data-lenis-prevent="true"
             onWheel={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
-            className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm overflow-hidden"
+            style={
+              isMobile && viewportData
+                ? {
+                    position: "fixed",
+                    top: `${viewportData.top}px`,
+                    left: 0,
+                    width: "100%",
+                    height: `${viewportData.height}px`,
+                    maxHeight: `${viewportData.height}px`,
+                  }
+                : undefined
+            }
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm overflow-hidden"
           >
             <motion.div
               data-lenis-prevent="true"
@@ -692,15 +725,7 @@ export default function YanhalBot() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 16 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              style={
-                isMobile && visualViewportHeight
-                  ? {
-                      height: `${visualViewportHeight}px`,
-                      maxHeight: `${visualViewportHeight}px`,
-                    }
-                  : undefined
-              }
-              className="bot-mobile-modal relative w-full h-[100dvh] sm:h-[88vh] max-h-[100dvh] sm:max-h-[88vh] sm:max-w-4xl bg-[#FAF8F5] text-[#2D2926] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden border-0 sm:border border-black/10"
+              className="bot-mobile-modal relative w-full h-full sm:h-[88vh] max-h-full sm:max-h-[88vh] sm:max-w-4xl bg-[#FAF8F5] text-[#2D2926] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden border-0 sm:border border-black/10"
             >
               {/* Header Bar: Increased logo SVG size + reads strictly 'Bot' beside it */}
               <div className="bot-mobile-header flex items-center justify-between px-5 py-3.5 border-b border-black/5 bg-white/70 backdrop-blur-md shrink-0">
@@ -1130,11 +1155,13 @@ export default function YanhalBot() {
                         onChange={(e) => setInputValue(e.target.value)}
                         onFocus={() => {
                           if (typeof window !== "undefined" && window.innerWidth < 640) {
+                            window.scrollTo(0, 0);
                             setTimeout(() => {
+                              window.scrollTo(0, 0);
                               if (chatScrollRef.current) {
                                 chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
                               }
-                            }, 200);
+                            }, 60);
                           }
                         }}
                         onKeyDown={(e) => {

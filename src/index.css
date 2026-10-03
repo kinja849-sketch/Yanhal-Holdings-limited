@@ -681,8 +681,8 @@ button.chr-hover {
 /* ========================================================================= */
 @media (max-width: 639px) {
   .bot-mobile-modal {
-    height: 100dvh;
-    max-height: 100dvh;
+    height: 100% !important;
+    max-height: 100% !important;
     border-radius: 0;
     border: none;
   }
