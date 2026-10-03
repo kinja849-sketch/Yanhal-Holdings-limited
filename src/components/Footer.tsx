@@ -1,5 +1,141 @@
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import gsap from "gsap";
 import { motion } from "motion/react";
 import { transitionManager } from "../lib/transitionManager";
+
+function BouncyWordmark() {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const lineRefs = useRef<HTMLDivElement[]>([]);
+  const lettersRef = useRef<HTMLSpanElement[]>([]);
+  const [stacked, setStacked] = useState(false);
+  const [fontSize, setFontSize] = useState(64);
+
+  // Phones/small tablets: "YANHAL" over "HOLDINGS." Larger screens: one line "YANHAL HOLDINGS."
+  const lines = stacked ? ["YANHAL", "HOLDINGS."] : ["YANHAL HOLDINGS."];
+
+  // Decide layout + fit the widest line exactly to the available width at every breakpoint
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const fit = () => {
+      const isStacked = window.innerWidth < 768;
+      setStacked((prev) => (prev === isStacked ? prev : isStacked));
+      const available = wrap.clientWidth - 2 * parseFloat(getComputedStyle(wrap).paddingLeft || "0");
+      const widest = Math.max(0, ...lineRefs.current.filter(Boolean).map((l) => l.offsetWidth));
+      if (widest > 0 && available > 0) {
+        setFontSize((prev) => Math.max(12, Math.floor(prev * (available / widest) * 0.98 * 100) / 100));
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(wrap);
+    window.addEventListener("resize", fit);
+    if (document.fonts?.ready) document.fonts.ready.then(fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, [stacked]);
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    const letters = lettersRef.current.filter(Boolean);
+    if (!wrap || !letters.length) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const ctx = gsap.context(() => {
+      gsap.set(letters, { yPercent: 110, transformOrigin: "50% 100%" });
+      // Bouncy drop-in when the footer wordmark scrolls into view
+      const io = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            gsap.to(letters, {
+              yPercent: 0,
+              duration: 1.6,
+              ease: "elastic.out(1, 0.45)",
+              stagger: 0.05,
+              overwrite: "auto",
+            });
+          } else {
+            gsap.set(letters, { yPercent: 110 });
+          }
+        },
+        { threshold: 0.2 }
+      );
+      io.observe(wrap);
+      return () => io.disconnect();
+    }, wrap);
+
+    // Squash & stretch bounce on pointer / touch proximity
+    const bounce = (el: HTMLElement) => {
+      gsap.killTweensOf(el, "yPercent,scaleX,scaleY");
+      gsap
+        .timeline()
+        .to(el, { yPercent: -18, scaleY: 1.12, scaleX: 0.94, duration: 0.18, ease: "power2.out" })
+        .to(el, { yPercent: 0, scaleY: 1, scaleX: 1, duration: 1.1, ease: "elastic.out(1, 0.35)" });
+    };
+    const last = new WeakMap<HTMLElement, number>();
+    const onMove = (e: PointerEvent) => {
+      const now = performance.now();
+      letters.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const d = Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2));
+        if (d < r.width * 0.65 && now - (last.get(el) || 0) > 600) {
+          last.set(el, now);
+          bounce(el);
+        }
+      });
+    };
+    wrap.addEventListener("pointermove", onMove);
+    wrap.addEventListener("pointerdown", onMove);
+    return () => {
+      wrap.removeEventListener("pointermove", onMove);
+      wrap.removeEventListener("pointerdown", onMove);
+      ctx.revert();
+    };
+  }, [stacked]);
+
+  lettersRef.current = [];
+  let idx = 0;
+  return (
+    <div
+      ref={wrapRef}
+      className="relative z-10 w-full overflow-hidden select-none flex flex-col items-center px-[4vw] md:px-[2vw] pt-10 sm:pt-16 pb-28 sm:pb-32"
+      aria-label="Yanhal Holdings"
+      role="img"
+    >
+      <div
+        aria-hidden="true"
+        className="flex flex-col items-center font-display font-bold uppercase text-[#F0EBE5] leading-[0.9] tracking-[-0.03em]"
+        style={{ fontSize: `${fontSize}px` }}
+      >
+        {lines.map((line, li) => (
+          <div
+            key={`${stacked}-${li}`}
+            ref={(el) => { if (el) lineRefs.current[li] = el; }}
+            className="flex items-end whitespace-nowrap w-max overflow-hidden pt-[0.2em] -mt-[0.2em] pb-[0.06em]"
+          >
+            {line.split("").map((ch, ci) => {
+              if (ch === " ") return <span key={ci} className="inline-block w-[0.3em]" />;
+              const n = idx++;
+              const isDot = ch === ".";
+              return (
+                <span key={ci} className="inline-block">
+                  <span
+                    ref={(el) => { if (el) lettersRef.current[n] = el; }}
+                    className={`inline-block will-change-transform cursor-default transition-colors duration-300 ${isDot ? "text-[#E0B9A0]" : "hover:text-[#E0B9A0]"}`}
+                  >
+                    {ch}
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Footer() {
   return (
@@ -177,13 +313,13 @@ export default function Footer() {
 
               {/* TikTok */}
               <a 
-                href="https://www.tiktok.com/@yanhal.holdings.lt" 
+                href="https://www.tiktok.com/@yanhalholdingsltd" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 onClick={(e) => {
                   e.preventDefault();
                   transitionManager.transitionTo({
-                    destination: "https://www.tiktok.com/@yanhal.holdings.lt",
+                    destination: "https://www.tiktok.com/@yanhalholdingsltd",
                     label: "SOCIAL · TIKTOK",
                     isExternal: true,
                   });
@@ -232,6 +368,7 @@ export default function Footer() {
           </div>
         </div>
       </div>
+      <BouncyWordmark />
     </footer>
   );
 }
