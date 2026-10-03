@@ -1,34 +1,87 @@
 /**
  * Yanhal Holdings Ltd — High-Fidelity Human Studio TTS Player
  * Uses OpenAI Studio TTS (/api/assistant/tts) as the mandatory voice pipeline.
- * Strictly avoids robotic browser SpeechSynthesis on mobile.
- * Includes audio caching, connection retry, and session isolation.
+ * Strictly avoids robotic browser SpeechSynthesis.
+ *
+ * Mobile autoplay model (iOS Safari / Android WebView):
+ * a media element may only play programmatically if THAT SAME element was
+ * started from a user gesture. A `new Audio()` created after an async fetch
+ * is blocked. So we keep ONE persistent element, "unlock" it inside every
+ * voice-button press, and then reuse it (swap `src`) for every spoken reply.
  */
 
-let activeAudio: HTMLAudioElement | null = null;
-let activeObjectUrl: string | null = null;
+let sharedAudio: HTMLAudioElement | null = null;
 let audioContext: AudioContext | null = null;
 let currentSessionId = 0;
 
-// Client-side cache for instantaneous playback of synthesized voice turns
+// Tiny silent WAV used purely to unlock the element inside a user gesture.
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+
+// Client-side cache (blob URLs are never revoked so cached replays stay valid)
 const clientAudioCache = new Map<string, string>();
 
+function getSharedAudio(): HTMLAudioElement {
+  if (!sharedAudio) {
+    sharedAudio = new Audio();
+    sharedAudio.preload = "auto";
+    (sharedAudio as any).playsInline = true;
+    sharedAudio.setAttribute("playsinline", "true");
+    sharedAudio.setAttribute("webkit-playsinline", "true");
+  }
+  return sharedAudio;
+}
+
 /**
- * Unlock Web Audio & HTML5 Audio on user gesture (e.g. entering Voice Mode).
+ * Unlock Web Audio & HTML5 Audio. MUST be called synchronously inside a user
+ * gesture (voice button press, send, etc.). Safe to call on every interaction.
  */
 export function unlockAudio() {
+  if (typeof window === "undefined") return;
+
+  // 1. AudioContext: create once, resume on EVERY call (iOS re-suspends it).
   try {
-    if (!audioContext && typeof window !== "undefined") {
+    if (!audioContext) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        audioContext = new AudioCtx();
-        if (audioContext.state === "suspended") {
-          audioContext.resume();
-        }
-      }
+      if (AudioCtx) audioContext = new AudioCtx();
+    }
+    if (audioContext && audioContext.state !== "running") {
+      audioContext.resume().catch(() => {});
+    }
+    // Play an inaudible buffer to fully unlock the iOS audio session
+    if (audioContext) {
+      const buf = audioContext.createBuffer(1, 1, 22050);
+      const src = audioContext.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioContext.destination);
+      src.start(0);
     }
   } catch (e) {
     console.warn("[TTS] AudioContext unlock notice:", e);
+  }
+
+  // 2. The persistent <audio> element: start it inside the gesture.
+  try {
+    const audio = getSharedAudio();
+    if (audio.paused && !audio.src) {
+      audio.src = SILENT_WAV;
+      audio.muted = true;
+      const p = audio.play();
+      const finish = () => {
+        audio.pause();
+        audio.muted = false;
+        audio.removeAttribute("src");
+      };
+      if (p && typeof p.then === "function") {
+        p.then(finish).catch(() => {
+          audio.muted = false;
+        });
+      } else {
+        finish();
+      }
+    }
+  } catch (e) {
+    console.warn("[TTS] Audio element unlock notice:", e);
   }
 }
 
@@ -37,19 +90,20 @@ export function unlockAudio() {
  * Invalidates any in-flight speech requests so no sound leaks after turn end.
  */
 export function stopAudio() {
-  currentSessionId++; // Invalidate all pending and inflight requests
-  
-  if (activeAudio) {
-    activeAudio.pause();
-    activeAudio.onplay = null;
-    activeAudio.onended = null;
-    activeAudio.onerror = null;
-    activeAudio.src = "";
-    activeAudio = null;
-  }
-  if (activeObjectUrl) {
-    URL.revokeObjectURL(activeObjectUrl);
-    activeObjectUrl = null;
+  currentSessionId++;
+
+  if (sharedAudio) {
+    sharedAudio.onplay = null;
+    sharedAudio.onended = null;
+    sharedAudio.onerror = null;
+    try {
+      sharedAudio.pause();
+    } catch (_) {}
+    // Keep the element (and its unlocked state); just detach the media.
+    sharedAudio.removeAttribute("src");
+    try {
+      sharedAudio.load();
+    } catch (_) {}
   }
   if (typeof window !== "undefined" && "speechSynthesis" in window) {
     try {
@@ -68,8 +122,17 @@ export interface PlaySpeechOptions {
   onError?: (err: any) => void;
 }
 
+/** fetch timeout that works on older iOS (AbortSignal.timeout needs Safari 16.4+) */
+function timeoutSignal(ms: number): AbortSignal | undefined {
+  if (typeof AbortController === "undefined") return undefined;
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
+
 /**
- * Helper to fetch Studio TTS with automatic 1-shot retry on transient network errors.
+ * Fetch Studio TTS with a 1-shot retry. Validates that the response really is
+ * audio (a static host's SPA fallback returns index.html with HTTP 200).
  */
 async function fetchStudioAudio(cleanText: string, voice: string, sessionId: number): Promise<Blob | null> {
   const doFetch = async () => {
@@ -77,20 +140,23 @@ async function fetchStudioAudio(cleanText: string, voice: string, sessionId: num
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: cleanText, voice }),
-      signal: AbortSignal.timeout(12000),
+      signal: timeoutSignal(25000),
     });
     if (!res.ok) throw new Error(`TTS status ${res.status}`);
-    const blob = await res.blob();
-    if (!blob || blob.size < 200) throw new Error("Empty audio blob");
-    return blob;
+    const type = (res.headers.get("content-type") || "").toLowerCase();
+    if (!type.startsWith("audio/")) throw new Error(`TTS returned non-audio content (${type || "unknown"})`);
+    const raw = await res.blob();
+    if (!raw || raw.size < 200) throw new Error("Empty audio blob");
+    // Make sure the blob carries an audio MIME type iOS accepts
+    return raw.type.startsWith("audio/") ? raw : new Blob([raw], { type: "audio/mpeg" });
   };
 
   try {
     return await doFetch();
   } catch (err) {
     if (sessionId !== currentSessionId) return null;
-    console.warn(`[VoiceTurn #${sessionId}] First studio TTS attempt failed, retrying in 350ms...`, err);
-    await new Promise(r => setTimeout(r, 350));
+    console.warn(`[VoiceTurn #${sessionId}] First studio TTS attempt failed, retrying...`, err);
+    await new Promise((r) => setTimeout(r, 350));
     if (sessionId !== currentSessionId) return null;
     try {
       return await doFetch();
@@ -101,9 +167,42 @@ async function fetchStudioAudio(cleanText: string, voice: string, sessionId: num
   }
 }
 
+/** Play a URL through the persistent, gesture-unlocked element. */
+function playOnSharedElement(
+  url: string,
+  sessionId: number,
+  handlers: { onStart?: () => void; onEnd?: () => void; onError?: (e: any) => void }
+): Promise<void> {
+  const audio = getSharedAudio();
+  audio.onplay = () => {
+    if (sessionId !== currentSessionId) {
+      audio.pause();
+      return;
+    }
+    handlers.onStart?.();
+  };
+  audio.onended = () => {
+    if (sessionId !== currentSessionId) return;
+    stopAudio();
+    handlers.onEnd?.();
+  };
+  audio.onerror = (e) => {
+    if (sessionId !== currentSessionId) return;
+    console.error(`[VoiceTurn #${sessionId}] Audio element playback error:`, e);
+    handlers.onError?.(e);
+  };
+
+  audio.muted = false;
+  audio.src = url;
+  // Resume a re-suspended context before playing
+  if (audioContext && audioContext.state !== "running") audioContext.resume().catch(() => {});
+  const p = audio.play();
+  return p && typeof p.then === "function" ? p : Promise.resolve();
+}
+
 /**
  * Play text as natural human studio speech.
- * Mandatory studio path: does NOT fall back to flat robotic browser SpeechSynthesis.
+ * Mandatory studio path: never falls back to the robotic device voice.
  */
 export async function playHumanSpeech({
   text,
@@ -122,141 +221,62 @@ export async function playHumanSpeech({
     .trim();
 
   if (!cleanText && !audioBase64) {
-    if (onEnd) onEnd();
+    onEnd?.();
     return;
   }
 
+  let failed = false;
+  const fail = (message: string) => {
+    if (failed || sessionId !== currentSessionId) return;
+    failed = true;
+    console.warn(`[VoiceTurn #${sessionId}] ${message}`);
+    onError?.({ message, isVoiceDegraded: true });
+  };
+
+  const handlers = {
+    onStart,
+    onEnd,
+    onError: () => fail("The voice reply could not be played on this device. Please tap the voice button again or switch to text chat."),
+  };
+
   const cacheKey = `${voice}_${cleanText.toLowerCase()}`;
+  let urlToPlay: string | null = clientAudioCache.get(cacheKey) || null;
 
-  // 1. Check in-memory audio cache for instantaneous replay
-  if (clientAudioCache.has(cacheKey)) {
-    const cachedUrl = clientAudioCache.get(cacheKey)!;
+  // Inline audio supplied by the chat endpoint
+  if (!urlToPlay && audioBase64) {
     try {
-      const audio = new Audio(cachedUrl);
-      activeAudio = audio;
-
-      audio.onplay = () => {
-        if (sessionId !== currentSessionId) {
-          audio.pause();
-          return;
-        }
-        console.log(`[VoiceTurn #${sessionId}] Cached studio audio playback started`);
-        if (onStart) onStart();
-      };
-
-      audio.onended = () => {
-        if (sessionId !== currentSessionId) return;
-        console.log(`[VoiceTurn #${sessionId}] Cached studio audio playback ended`);
-        stopAudio();
-        if (onEnd) onEnd();
-      };
-
-      audio.onerror = (e) => {
-        if (sessionId !== currentSessionId) return;
-        console.warn(`[VoiceTurn #${sessionId}] Cached audio error, refetching:`, e);
-      };
-
-      await audio.play();
-      return;
+      const bin = atob(audioBase64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      urlToPlay = URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" }));
     } catch (e) {
-      console.warn(`[VoiceTurn #${sessionId}] Error playing cached audio:`, e);
+      console.warn(`[VoiceTurn #${sessionId}] Invalid inline audio, will request studio TTS`, e);
     }
   }
 
-  // 2. Play direct audioBase64 if provided from inline generation
-  if (audioBase64) {
-    try {
-      const audioUrl = `data:audio/mpeg;base64,${audioBase64}`;
-      const audio = new Audio(audioUrl);
-      activeAudio = audio;
-
-      audio.onplay = () => {
-        if (sessionId !== currentSessionId) {
-          audio.pause();
-          return;
-        }
-        console.log(`[VoiceTurn #${sessionId}] Instant Base64 studio audio playback started`);
-        if (onStart) onStart();
-      };
-
-      audio.onended = () => {
-        if (sessionId !== currentSessionId) return;
-        console.log(`[VoiceTurn #${sessionId}] Studio audio playback ended`);
-        stopAudio();
-        if (onEnd) onEnd();
-      };
-
-      audio.onerror = (e) => {
-        if (sessionId !== currentSessionId) return;
-        console.warn(`[VoiceTurn #${sessionId}] Base64 audio error:`, e);
-      };
-
-      await audio.play();
-      if (clientAudioCache.size < 60) {
-        clientAudioCache.set(cacheKey, audioUrl);
-      }
+  // Request studio voice from the server
+  if (!urlToPlay) {
+    console.log(`[VoiceTurn #${sessionId}] Requesting studio speech playback (/api/assistant/tts)...`);
+    const blob = await fetchStudioAudio(cleanText, voice, sessionId);
+    if (sessionId !== currentSessionId) return;
+    if (!blob) {
+      fail("The studio voice could not be reached. Please check your connection, tap the voice button to retry, or switch to text chat.");
       return;
-    } catch (err) {
-      console.warn(`[VoiceTurn #${sessionId}] Direct audio play notice:`, err);
     }
+    urlToPlay = URL.createObjectURL(blob);
   }
 
-  // 3. Request Studio Voice via /api/assistant/tts with retry
-  console.log(`[VoiceTurn #${sessionId}] Requesting studio speech playback (/api/assistant/tts)...`);
-  const blob = await fetchStudioAudio(cleanText, voice, sessionId);
-  if (sessionId !== currentSessionId) return;
+  if (clientAudioCache.size < 60) clientAudioCache.set(cacheKey, urlToPlay);
 
-  if (blob) {
-    try {
-      const url = URL.createObjectURL(blob);
-      activeObjectUrl = url;
-
-      const audio = new Audio(url);
-      activeAudio = audio;
-
-      audio.onplay = () => {
-        if (sessionId !== currentSessionId) {
-          audio.pause();
-          return;
-        }
-        console.log(`[VoiceTurn #${sessionId}] OpenAI Studio audio playback started`);
-        if (onStart) onStart();
-      };
-
-      audio.onended = () => {
-        if (sessionId !== currentSessionId) return;
-        console.log(`[VoiceTurn #${sessionId}] OpenAI Studio audio playback ended`);
-        stopAudio();
-        if (onEnd) onEnd();
-      };
-
-      audio.onerror = (e) => {
-        if (sessionId !== currentSessionId) return;
-        console.error(`[VoiceTurn #${sessionId}] Audio element playback error:`, e);
-        if (onError) onError({ message: "Audio playback encountered an error on this device.", isVoiceDegraded: true });
-        if (onEnd) onEnd();
-      };
-
-      await audio.play();
-      if (clientAudioCache.size < 60) {
-        clientAudioCache.set(cacheKey, url);
-      }
-      return;
-    } catch (playErr) {
-      console.error(`[VoiceTurn #${sessionId}] Audio playback failed:`, playErr);
+  try {
+    await playOnSharedElement(urlToPlay, sessionId, handlers);
+  } catch (playErr: any) {
+    if (sessionId !== currentSessionId) return;
+    console.error(`[VoiceTurn #${sessionId}] Audio playback failed:`, playErr);
+    if (playErr?.name === "NotAllowedError") {
+      fail("Your phone blocked the voice reply. Tap the voice button once more to allow audio, or switch to text chat.");
+    } else {
+      fail("The voice reply could not be played on this device. Please switch to text chat.");
     }
-  }
-
-  // 4. Mandatory Studio Voice handling:
-  // Strictly prevent falling back to the flat robotic mobile browser speech synthesis.
-  if (sessionId === currentSessionId) {
-    console.warn(`[VoiceTurn #${sessionId}] Studio TTS unavailable after retry; notifying user cleanly rather than using robotic synthesizer.`);
-    if (onError) {
-      onError({ 
-        message: "Studio voice audio connection is temporarily slow on your mobile network. Please check your connection or switch to text chat.",
-        isVoiceDegraded: true 
-      });
-    }
-    if (onEnd) onEnd();
   }
 }

@@ -323,7 +323,9 @@ export default function YanhalBot() {
         }
 
         const trimmed = liveTranscriptRef.current.trim();
-        if (trimmed && (hasFinalResultRef.current || trimmed.length > 5)) {
+        // Mobile recognizers end by themselves after short silences; any captured words
+        // (even "hi" / "yes") must be committed rather than discarded.
+        if (trimmed) {
           if (isEcho(trimmed, lastAssistantReplyRef.current)) {
             console.log("[VoiceTurn] Echo detected and ignored from speaker feedback.");
             liveTranscriptRef.current = "";
@@ -344,9 +346,13 @@ export default function YanhalBot() {
 
         // Keep continuous recognition listening if user has not committed
         if (isVoiceToVoiceRef.current && voiceStatusRef.current === "listening") {
-          try {
-            recognition.start();
-          } catch (_) {}
+          setTimeout(() => {
+            if (isVoiceToVoiceRef.current && !turnCommittedRef.current && voiceStatusRef.current === "listening") {
+              try {
+                recognition.start();
+              } catch (_) {}
+            }
+          }, 250);
         }
       };
 
@@ -376,8 +382,8 @@ export default function YanhalBot() {
   // Enter Voice-to-Voice section (Triggered by the Blue Button)
   const openVoiceToVoice = () => {
     console.log("[VoiceTurn] Entering Voice-to-Voice section");
-    unlockAudio();
     stopAudio();
+    unlockAudio(); // must run synchronously inside this button press (mobile autoplay rules)
     turnCommittedRef.current = false;
     hasFinalResultRef.current = false;
     liveTranscriptRef.current = "";
@@ -458,7 +464,12 @@ export default function YanhalBot() {
             message: text,
             mode,
           }),
-          signal: AbortSignal.timeout(12000),
+          signal: (() => {
+            // AbortSignal.timeout is missing on iOS Safari < 16.4
+            const c = new AbortController();
+            setTimeout(() => c.abort(), 20000);
+            return c.signal;
+          })(),
         });
 
         if (response.ok) {
@@ -557,6 +568,7 @@ export default function YanhalBot() {
 
   // Explicit user signal to commit voice turn immediately without waiting for silence timer
   const commitVoiceTurnImmediately = useCallback(() => {
+    unlockAudio(); // user gesture: keep the audio element/context unlocked for the reply
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
