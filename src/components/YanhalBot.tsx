@@ -746,7 +746,7 @@ export default function YanhalBot() {
                     <YanhalLogoSvg className="w-full h-full" />
                   </div>
                   <span className="text-base font-bold tracking-tight text-neutral-900">
-                    Archie
+                    Yani Bot
                   </span>
                 </div>
 
@@ -1161,7 +1161,7 @@ export default function YanhalBot() {
                             handleSend();
                           }
                         }}
-                        placeholder="Ask Archie"
+                        placeholder="Ask Yani Bot"
                         className="flex-1 bg-transparent border-none outline-none px-3 py-2 text-base sm:text-sm text-neutral-800 placeholder-neutral-500"
                       />
 
