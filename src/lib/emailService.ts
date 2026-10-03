@@ -4,22 +4,11 @@
  * Records delivery status and retries to ensure failures never silently count as delivered.
  */
 
-import nodemailer from 'nodemailer';
+import { sendMail, isMailConfigured } from './mailTransport.js';
 import dotenv from 'dotenv';
 import { assistantStorage } from './assistantStorage.js';
 
 dotenv.config();
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
 
 const COMPANY_EMAIL = process.env.COMPANY_EMAIL || 'Yanhalholdingslimited@gmail.com';
 
@@ -128,7 +117,7 @@ export async function sendVisitorSummaryEmail(data: VisitorSummaryData): Promise
             <p style="font-size: 14px; margin: 0;">${data.expectedNextStep}</p>
           </div>
 
-          <p style="font-size: 13px; color: #a8a29e; border-top: 1px solid rgba(255,255,255,0.1); pt: 16px; margin-top: 24px;">
+          <p style="font-size: 13px; color: #a8a29e; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px; margin-top: 24px;">
             Need immediate clarification? Reach our Nairobi HQ directly at <a href="tel:+254724093256" style="color: #E0B9A0;">+254 724 093256</a> or via WhatsApp at <a href="https://wa.me/254740895374" style="color: #E0B9A0;">+254 740 895374</a>.
           </p>
         </div>
@@ -138,9 +127,9 @@ export async function sendVisitorSummaryEmail(data: VisitorSummaryData): Promise
   `;
 
   try {
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      await transporter.sendMail({
-        from: '"Yanhal Holdings Estimator" <system@yanhalholdings.com>',
+    if (isMailConfigured()) {
+      await sendMail({
+        fromName: 'Yanhal Holdings Estimator',
         to: data.visitorEmail,
         subject: `Your Project Estimate & Summary — Yanhal Holdings Ltd`,
         html,
@@ -161,10 +150,11 @@ export async function sendVisitorSummaryEmail(data: VisitorSummaryData): Promise
         recipientEmail: data.visitorEmail,
         subject: `Your Project Estimate & Summary — Yanhal Holdings Ltd`,
         contentHtml: html,
-        status: 'sent', // Logged for offline/dev
+        status: 'failed',
+        error: 'SMTP not configured',
         enquiryId: data.enquiryId,
       });
-      return { success: true };
+      return { success: false, error: 'SMTP not configured' };
     }
   } catch (err: any) {
     console.error('[Email Service] Visitor email delivery failed:', err);
@@ -253,9 +243,9 @@ export async function sendOwnerBriefingEmail(data: OwnerBriefingData): Promise<{
   `;
 
   try {
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      await transporter.sendMail({
-        from: '"Yanhal Operations" <system@yanhalholdings.com>',
+    if (isMailConfigured()) {
+      await sendMail({
+        fromName: 'Yanhal Operations',
         to: COMPANY_EMAIL,
         subject: `[Confidential Briefing] Project Enquiry: ${data.projectType} — ${data.visitorName || 'Client'}`,
         html,
@@ -276,10 +266,11 @@ export async function sendOwnerBriefingEmail(data: OwnerBriefingData): Promise<{
         recipientEmail: COMPANY_EMAIL,
         subject: `[Confidential Briefing] Project Enquiry: ${data.projectType} — ${data.visitorName || 'Client'}`,
         contentHtml: html,
-        status: 'sent', // Logged for offline/dev
+        status: 'failed',
+        error: 'SMTP not configured',
         enquiryId: data.enquiryId,
       });
-      return { success: true };
+      return { success: false, error: 'SMTP not configured' };
     }
   } catch (err: any) {
     console.error('[Email Service] Owner briefing email delivery failed:', err);

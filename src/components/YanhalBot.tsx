@@ -459,11 +459,22 @@ export default function YanhalBot() {
         const response = await fetch("/api/assistant/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            anonymousSessionId: sessionId,
-            message: text,
-            mode,
-          }),
+          body: JSON.stringify((() => {
+            let projectContext: any = undefined;
+            try {
+              const raw = localStorage.getItem("yanhal_project_context");
+              if (raw) projectContext = JSON.parse(raw);
+            } catch (_) {}
+            return {
+              anonymousSessionId: sessionId,
+              message: text,
+              mode,
+              projectContext,
+              visitorContact: projectContext
+                ? { name: projectContext.name || undefined, email: projectContext.email || undefined, phone: projectContext.phone || undefined }
+                : undefined,
+            };
+          })()),
           signal: (() => {
             // AbortSignal.timeout is missing on iOS Safari < 16.4
             const c = new AbortController();

@@ -20,6 +20,7 @@
     "@types/nodemailer": "^8.0.0",
     "@types/three": "^0.183.1",
     "@vitejs/plugin-react": "^5.0.4",
+    "busboy": "^1.6.0",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^4.22.1",

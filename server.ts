@@ -7,7 +7,8 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-import { VERIFICATION_TEMPLATE, CONTACT_TEMPLATE, ESTIMATE_TEMPLATE } from "./src/emailTemplates.js";
+import { VERIFICATION_TEMPLATE, CONTACT_TEMPLATE } from "./src/emailTemplates.js";
+import { sendEstimateEmails } from "./src/lib/estimateMailer.js";
 import { orchestrateAssistant } from "./src/lib/assistantOrchestrator.js";
 import { assistantStorage } from "./src/lib/assistantStorage.js";
 import { searchPlaces } from "./src/lib/placesService.js";
@@ -108,59 +109,26 @@ async function startServer() {
   });
 
   app.post(["/api/send-estimate", "/.netlify/functions/send-estimate"], upload.array('images'), async (req, res) => {
-    const { name, phone, location, service, scope, size, budget, message, profileImageUrl } = req.body;
-    const images = req.files as Express.Multer.File[];
+    const { name, phone, service } = req.body;
+    const images = (req.files as Express.Multer.File[]) || [];
 
     if (!name || !phone || !service) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const imageLink = images && images.length > 0 
-      ? `<p><strong>Attached Images:</strong> ${images.length} image(s) attached to this email.</p>` 
-      : "<p>No images provided</p>";
-
-    const html = ESTIMATE_TEMPLATE
-      .replace("{{name}}", name)
-      .replace("{{phone}}", phone)
-      .replace("{{location}}", location || "Not Specified")
-      .replace("{{service}}", service)
-      .replace("{{scope}}", scope || "Not Specified")
-      .replace("{{size}}", size || "Not Specified")
-      .replace("{{budget}}", budget || "Not Specified")
-      .replace("{{message}}", message || "No additional message")
-      .replace("{{image_link}}", imageLink)
-      .replace("{{profile_url}}", profileImageUrl || "https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg");
-
-    // Format attachments for Nodemailer
-    const mailAttachments: any[] = [];
-    if (images && images.length > 0) {
-      images.forEach((file, index) => {
-        mailAttachments.push({
-          filename: file.originalname || `estimate_image_${index + 1}.jpg`,
-          content: file.buffer
-        });
-      });
-    }
-
-    try {
-      await transporter.sendMail({
-        from: '"Yanhal Estimator" <system@yanhalholdings.com>',
-        to: process.env.COMPANY_EMAIL || "Yanhalholdingslimited@gmail.com",
-        subject: `New Project Estimate: ${service} - ${name}`,
-        html: html,
-        attachments: mailAttachments
-      });
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error sending estimate email:", error);
-      res.status(500).json({ error: "Failed to send email" });
-    }
+    const result = await sendEstimateEmails(
+      req.body,
+      images.map((f, i) => ({ filename: f.originalname || `estimate_image_${i + 1}.jpg`, content: f.buffer }))
+    );
+    if (!result.configured) return res.status(500).json({ success: false, error: "Email service is not configured", ...result });
+    if (!result.companyEmailSent) return res.status(502).json({ success: false, error: "Failed to send email", ...result });
+    res.json({ success: true, ...result });
   });
 
   // Assistant Sitewide Conversational API Routes
   app.post("/api/assistant/chat", async (req, res) => {
     try {
-      const { anonymousSessionId, message, mode, visitorContact, confirmedAction } = req.body;
+      const { anonymousSessionId, message, mode, visitorContact, confirmedAction, projectContext } = req.body;
       if (!anonymousSessionId && !visitorContact?.email) {
         return res.status(400).json({ error: "Missing session or contact identity" });
       }
@@ -171,6 +139,7 @@ async function startServer() {
         mode: mode || "text",
         visitorContact,
         confirmedAction,
+        projectContext,
       });
 
       let audioBase64: string | undefined;

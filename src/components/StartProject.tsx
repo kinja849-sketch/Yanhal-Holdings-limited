@@ -107,6 +107,29 @@ export default function StartProject() {
     }
   }, []);
 
+  const [clientCopyFailed, setClientCopyFailed] = useState<boolean>(false);
+
+  // Share live Start Project progress with the chat assistant (read by YanhalBot on each message).
+  useEffect(() => {
+    try {
+      localStorage.setItem("yanhal_project_context", JSON.stringify({
+        step,
+        totalSteps: 4,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        projectType: formData.projectType,
+        serviceDepth: formData.serviceDepth,
+        sizeSqm: formData.size,
+        location: formData.location,
+        scope: formData.scope,
+        timeline: formData.timeline,
+        submitted: isSubmitted,
+        updatedAt: Date.now(),
+      }));
+    } catch (_) {}
+  }, [step, formData.name, formData.email, formData.phone, formData.projectType, formData.serviceDepth, formData.size, formData.location, formData.scope, formData.timeline, isSubmitted]);
+
   // Real-time Dynamic Cost Estimator Calculation
   const calculation = useMemo(() => {
     const selectedType = PROJECT_TYPES.find(t => t.id === formData.projectType) || PROJECT_TYPES[0];
@@ -183,23 +206,37 @@ export default function StartProject() {
         });
       }
 
-      await fetch("/", {
-        method: "POST",
-        body: formPayload
-      }).catch(err => console.log("Form POST handled:", err));
+      // Netlify serverless bodies are capped at ~6MB; drop images (and say so) rather than fail the whole enquiry.
+      const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+      const totalImageBytes = (formData.images || []).reduce((sum, f) => sum + f.size, 0);
+      const apiPayload = new FormData();
+      formPayload.forEach((value, key) => {
+        if (key === "images" && totalImageBytes > MAX_IMAGE_BYTES) return;
+        apiPayload.append(key, value);
+      });
+      if (totalImageBytes > MAX_IMAGE_BYTES) {
+        apiPayload.set("message", `${formPayload.get("message")} (${formData.images.length} image(s) were too large to attach; client will share them via WhatsApp.)`);
+      }
 
-      fetch("/api/send-estimate", {
-        method: "POST",
-        body: formPayload
-      }).catch(() => {});
+      // Netlify Forms capture (best effort, non-blocking)
+      fetch("/", { method: "POST", body: formPayload }).catch(err => console.log("Form POST handled:", err));
 
+      const res = await fetch("/api/send-estimate", { method: "POST", body: apiPayload });
+      let result: any = null;
+      try { result = await res.json(); } catch (_) {}
+
+      if (!res.ok || !result?.success) {
+        throw new Error(result?.error || `Server responded ${res.status}`);
+      }
+
+      setClientCopyFailed(!result.clientEmailSent);
       setIsSubmitted(true);
       setTimeout(() => {
         handleReset();
       }, 7000);
     } catch (err) {
       console.error("Submission failed:", err);
-      alert("Submission encountered an issue. Please call us directly at +254 724 093256.");
+      alert("We couldn't send your enquiry just now. Please try again, or call us directly at +254 724 093256.");
     } finally {
       setLoading(false);
     }
@@ -335,6 +372,11 @@ export default function StartProject() {
                     <p className="text-stone-300 text-sm max-w-md mx-auto font-light leading-relaxed">
                       Thank you, <strong className="text-white font-medium">{formData.name}</strong>. Your project data, dynamic estimate calculation, and attached requirements have been transmitted to Yanhal Holdings.
                     </p>
+                    <p className={`text-xs max-w-md mx-auto ${clientCopyFailed ? "text-amber-300" : "text-emerald-300"}`}>
+                      {clientCopyFailed
+                        ? `We received your enquiry, but could not email a copy to ${formData.email}. Our team will contact you directly.`
+                        : `A summary has been emailed to ${formData.email}. Please check your spam folder if you don't see it.`}
+                    </p>
                     <div className="inline-block bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-xs font-mono text-[#E0B9A0]">
                       Direct Callback: {formData.phone}
                     </div>
@@ -395,11 +437,12 @@ export default function StartProject() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                         <div className="space-y-2">
                           <label className="text-[10px] uppercase tracking-[0.25em] text-stone-300 font-bold">
-                            Email Address (Optional)
+                            Email Address (Your summary is sent here)
                           </label>
                           <input
                             type="email"
                             name="email"
+                            required
                             value={formData.email}
                             onChange={handleInputChange}
                             placeholder="client@domain.com"
@@ -424,7 +467,7 @@ export default function StartProject() {
                       <div className="flex justify-end pt-4 border-t border-white/10">
                         <button
                           type="button"
-                          disabled={!formData.name || !formData.phone}
+                          disabled={!formData.name || !formData.phone || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(formData.email.trim())}
                           onClick={() => setStep(2)}
                           className="w-full sm:w-auto px-8 py-3.5 bg-[#E0B9A0] text-[#2D2926] rounded-full font-mono text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase hover:bg-white transition-all disabled:opacity-30 cursor-pointer shadow-lg active:scale-95 flex items-center justify-center gap-2"
                         >

@@ -27,6 +27,21 @@ export interface OrchestrationRequest {
     actionType: string;
     payload: any;
   };
+  /** Live Start Project form state sent by the client on every turn (needed on stateless hosts like Netlify). */
+  projectContext?: {
+    step?: number;
+    totalSteps?: number;
+    name?: string;
+    email?: string;
+    phone?: string;
+    projectType?: string;
+    serviceDepth?: string;
+    sizeSqm?: number;
+    location?: string;
+    scope?: string;
+    timeline?: string;
+    submitted?: boolean;
+  };
 }
 
 export interface OrchestrationResponse {
@@ -127,7 +142,7 @@ const ASSISTANT_TOOLS = [
     type: "function",
     function: {
       name: "send_project_summary",
-      description: "Send the project enquiry summary and planning benchmark to the visitor's email when they explicitly ask to email or submit their project summary.",
+      description: "Email the project summary and planning benchmark to the visitor AND notify the Yanhal team. Call this when the visitor asks to email, send, receive or submit their project summary or estimate, or confirms they want it sent. Use the email already on file when available; only ask for an email if none is on file.",
       parameters: {
         type: "object",
         properties: {
@@ -174,7 +189,24 @@ const ASSISTANT_TOOLS = [
   }
 ];
 
-function buildSystemPrompt(isVoice: boolean): string {
+function buildContextBlock(ctx: OrchestrationRequest['projectContext'], knownEmail?: string): string {
+  const email = ctx?.email || knownEmail;
+  if (!ctx && !email) return "   - Visitor details so far: none provided yet.";
+  const lines = [
+    ctx?.step ? `Currently on Step ${ctx.step} of ${ctx.totalSteps || 4}${ctx.submitted ? " (form already submitted)" : ""}` : "",
+    ctx?.name ? `Name: ${ctx.name}` : "",
+    email ? `Email on file: ${email}` : "Email: not provided yet",
+    ctx?.phone ? `Phone: ${ctx.phone}` : "",
+    ctx?.projectType ? `Project type: ${ctx.projectType}` : "",
+    ctx?.serviceDepth ? `Depth: ${ctx.serviceDepth}` : "",
+    ctx?.sizeSqm ? `Size: ${ctx.sizeSqm} sqm` : "",
+    ctx?.location ? `Location: ${ctx.location}` : "",
+    ctx?.scope ? `Scope: ${ctx.scope}` : "",
+  ].filter(Boolean);
+  return `   - Visitor details already entered in the Start Project form (treat as stated facts): ${lines.join("; ")}.`;
+}
+
+function buildSystemPrompt(isVoice: boolean, projectContext?: OrchestrationRequest['projectContext'], knownEmail?: string): string {
   return `You are Dahir, a senior project and civil engineer at Yanhal Holdings Limited in Nairobi, Kenya.
 You are having a direct, professional conversation with a prospective client, property owner, or developer.
 
@@ -205,9 +237,18 @@ CORE CONVERSATIONAL PRINCIPLES:
    - Blueprint Process (only share if requested): 1. Consultation & Site Visit, 2. Planning & Design, 3. Material Selection, 4. Construction Execution, 5. Quality Inspection, 6. Handover & Warranty Support.
    - Geographic Scope: We are based in Nairobi but undertake projects across Kenya (e.g. Mombasa, Kisumu, Nakuru, Eldoret, Kiambu, Machakos).
 
-4. FORMATTING RULES:
+4. START PROJECT PROCEDURE (the website form the visitor may be filling in right now; you know it fully and can guide them through it):
+   - Step 1 Identity and Location: name, phone, email (the email is where their project summary is sent) and site location.
+   - Step 2 Discipline and Project Scope: choose the project type and describe the scope.
+   - Step 3 Sizing, Depth and Dynamic Estimate: enter size in square metres and finishing depth, and see a live indicative cost range.
+   - Step 4 Visual Plans and Direct Consultation: optionally upload plans or reference images, review the summary and submit.
+   - On submit, the visitor receives a summary copy by email and the Yanhal team receives the full briefing. Our engineering lead follows up within one business day.
+   - If the visitor asks what to do next, where they are, or whether they will receive an email, answer from this procedure and the visitor details below. Never ask for details they have already given.
+   - When the visitor asks you to email or send their summary, call send_project_summary. If an email address is already on file you do not need to ask again. Only say the summary was sent if the tool reports success.
+${buildContextBlock(projectContext, knownEmail)}
+5. FORMATTING RULES:
    - Output natural conversational prose. DO NOT use bullet points, numbered lists, asterisks (*), hashtags (#), or dash bullets (-).
-   ${isVoice ? "5. SPOKEN VOICE MODE: The visitor is speaking to you over voice. Deliver a concise, natural 1-to-2 sentence spoken reply (strictly under 30 words) that sounds like an engineer speaking naturally on a phone call. Never use lists." : ""}`;
+   ${isVoice ? "6. SPOKEN VOICE MODE: The visitor is speaking to you over voice. Deliver a concise, natural 1-to-2 sentence spoken reply (strictly under 30 words) that sounds like an engineer speaking naturally on a phone call. Never use lists." : ""}`;
 }
 
 /**
@@ -215,13 +256,38 @@ CORE CONVERSATIONAL PRINCIPLES:
  */
 export async function orchestrateAssistant(req: OrchestrationRequest): Promise<OrchestrationResponse> {
   const startTime = Date.now();
-  const { anonymousSessionId, message, mode = 'text', visitorContact, confirmedAction } = req;
+  const { anonymousSessionId, message, mode = 'text', visitorContact, confirmedAction, projectContext } = req;
   const isVoice = mode === 'voice';
 
   // 1. Ensure Visitor & Conversation & Draft Project Enquiry
-  const visitor = await assistantStorage.getOrCreateVisitor(anonymousSessionId, visitorContact);
+  const contact = {
+    name: visitorContact?.name || projectContext?.name || undefined,
+    email: visitorContact?.email || projectContext?.email || undefined,
+    phone: visitorContact?.phone || projectContext?.phone || undefined,
+  };
+  const storedVisitor = await assistantStorage.getOrCreateVisitor(anonymousSessionId, contact);
+  // Overlay so the details the visitor typed into the form are always honoured, even with stateless storage.
+  const visitor = {
+    ...storedVisitor,
+    name: storedVisitor.name || contact.name || null,
+    email: storedVisitor.email || contact.email || null,
+    phone: storedVisitor.phone || contact.phone || null,
+  };
   const conversation = await assistantStorage.getOrCreateConversation(visitor.id, mode);
-  const enquiry = await assistantStorage.getOrCreateProjectEnquiry(visitor.id, conversation.id);
+  const storedEnquiry = await assistantStorage.getOrCreateProjectEnquiry(visitor.id, conversation.id);
+  const contextOverlay: Record<string, any> = {};
+  if (projectContext) {
+    if (projectContext.projectType) contextOverlay.project_type = projectContext.projectType;
+    if (projectContext.serviceDepth) contextOverlay.service_depth = projectContext.serviceDepth;
+    if (typeof projectContext.sizeSqm === 'number' && projectContext.sizeSqm > 0) contextOverlay.size_sqm = projectContext.sizeSqm;
+    if (projectContext.location) contextOverlay.location_name = projectContext.location;
+    if (projectContext.scope) contextOverlay.scope = projectContext.scope;
+    if (projectContext.timeline) contextOverlay.timeline = projectContext.timeline;
+    if (Object.keys(contextOverlay).length > 0) {
+      try { await assistantStorage.updateProjectEnquiry(storedEnquiry.id, contextOverlay); } catch (_) {}
+    }
+  }
+  const enquiry = { ...storedEnquiry, ...contextOverlay };
 
   // Record visitor message
   await assistantStorage.saveMessage(conversation.id, 'visitor', message, mode);
@@ -306,7 +372,7 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
 
     if (apiKey && apiKey.startsWith("sk-")) {
       try {
-        const systemPrompt = buildSystemPrompt(isVoice);
+        const systemPrompt = buildSystemPrompt(isVoice, projectContext, visitor.email || undefined);
         const messagesPayload: any[] = [
           { role: "system", content: systemPrompt },
         ];
@@ -344,7 +410,7 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
             messages: messagesPayload,
             tools: ASSISTANT_TOOLS,
             temperature: isVoice ? 0.65 : 0.72,
-            max_tokens: isVoice ? 90 : 380,
+            max_tokens: isVoice ? 90 : 520,
           }),
           signal: AbortSignal.timeout(10000),
         });
@@ -470,7 +536,7 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
                 const statedFacts = facts.filter(f => f.source_type === 'stated_by_visitor' || f.source_type === 'corrected_by_visitor').map(f => ({ key: f.fact_key, value: f.fact_value, note: f.provenance_note }));
                 const inferredFacts = facts.filter(f => f.source_type === 'inferred_by_ai').map(f => ({ key: f.fact_key, value: f.fact_value, note: f.provenance_note }));
 
-                await sendVisitorSummaryEmail({
+                const visitorMail = await sendVisitorSummaryEmail({
                   visitorName: visitor.name || "Client",
                   visitorEmail: targetEmail,
                   visitorPhone: visitor.phone,
@@ -493,7 +559,7 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
                   enquiryId: enquiry.id,
                 });
 
-                await sendOwnerBriefingEmail({
+                const ownerMail = await sendOwnerBriefingEmail({
                   visitorName: visitor.name || "Client",
                   visitorEmail: targetEmail,
                   visitorPhone: visitor.phone || "Not provided",
@@ -519,18 +585,27 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
                   recommendedFollowUp: "Schedule introductory phone assessment to confirm ground condition and verify site boundaries in Nairobi.",
                 });
 
-                await assistantStorage.updateProjectEnquiry(enquiry.id, { status: 'submitted' });
-                triggeredAction = {
-                  type: 'summary_sent',
-                  data: { email: targetEmail, enquiryId: enquiry.id },
-                };
-
-                toolResult = {
-                  status: "success",
-                  emailedTo: targetEmail,
-                  note: "The project brief and planning benchmark have been emailed successfully. Let the client know their summary was dispatched and invite them to schedule a site consultation.",
-                };
-                suggestedPrompts.push("Schedule a consultation", "View portfolio projects");
+                if (visitorMail.success) {
+                  await assistantStorage.updateProjectEnquiry(enquiry.id, { status: 'submitted' });
+                  triggeredAction = {
+                    type: 'summary_sent',
+                    data: { email: targetEmail, enquiryId: enquiry.id, companyNotified: ownerMail.success },
+                  };
+                  toolResult = {
+                    status: "success",
+                    emailedTo: targetEmail,
+                    companyNotified: ownerMail.success,
+                    note: "The project summary was emailed to the visitor" + (ownerMail.success ? " and our team was notified." : ", but our internal team notification failed, so tell them our team will still follow up directly.") + " Confirm this naturally and invite them to schedule a site consultation. Mention they should check spam if it does not arrive.",
+                  };
+                  suggestedPrompts.push("Schedule a consultation", "View portfolio projects");
+                } else {
+                  toolResult = {
+                    status: "email_failed",
+                    error: visitorMail.error || "Email delivery failed",
+                    note: "The summary email could NOT be sent. Do not claim it was sent. Apologise briefly, say it is a technical issue on our side, and give the visitor our direct contacts: phone +254 724 093256, WhatsApp +254 740 895374, Yanhalholdingslimited@gmail.com. Offer to try again.",
+                  };
+                  suggestedPrompts.push("Try sending the summary again", "Book a consultation");
+                }
               }
             }
             else if (funcName === "generate_visual_concept") {
@@ -572,7 +647,7 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
             }
 
             // Second pass: feed tool result back to model to compose the natural, context-aware reply
-            messagesPayload.push(choice.message);
+            messagesPayload.push({ ...choice.message, tool_calls: [toolCall] });
             messagesPayload.push({
               role: "tool",
               tool_call_id: toolCall.id,
@@ -589,7 +664,7 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
                 model: "gpt-4o-mini",
                 messages: messagesPayload,
                 temperature: isVoice ? 0.65 : 0.72,
-                max_tokens: isVoice ? 90 : 380,
+                max_tokens: isVoice ? 90 : 520,
               }),
               signal: AbortSignal.timeout(10000),
             });
