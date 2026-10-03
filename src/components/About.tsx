@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+﻿import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import AnimatedBlock from "./AnimatedBlock";
 import { ShieldCheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
@@ -147,7 +147,7 @@ export default function About() {
             <img 
               alt="Professional Architectural Project" 
               className="w-full h-full object-cover transition-all duration-1000 scale-105 group-hover:scale-110" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTqcc2ApLv-RX_qf9lurkf5yjntaZ9f_sP_ZtsvpH_TM-SPqwqFAa3sus9i-Ppj7AQODDKc1hg_KsIAfwH0Ztra0-X-GntWQHHnyw4WGPwgNcurptufRqWun_FzrgLMA2NZOhCxirdhBGx2w0zmEaNB0lOJ_y7-5ybIGKusyv6cIhdYuf8OLRyr92vZayE-CkevcBn66MP73wBx__-vY5UCwautMiOzls53qHN29lF-2s_CGdF0x4CdvioGAtw8786G_nt_dXbzeQ" 
+              src="/about-yanhal.jpg" 
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_150px_rgba(0,0,0,0.7)]"></div>

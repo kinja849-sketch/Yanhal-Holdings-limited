@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+﻿import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef, useEffect } from "react";
 import { gsap, useGSAP } from "../lib/gsap";
 
@@ -127,7 +127,7 @@ export default function Portfolio() {
         "Ensuring the structure was compact yet fully functional"
       ],
       result: "The final result was a modern, well-structured kiosk that not only improved operational efficiency but also created a more professional and inviting presence for customers.",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBEaeFV-7KNBpps2-ELWn3KUvW7uFq7zlkDp2UR0JZ1fotpCQU5pnDn51g6xWJCASKsABXVdbItcamjtlpJaMebg9sd8IEPSsrfP92GrTOBvZOR553mIksZmLejdjmfFWkpqU6xwePrx5INhavcV6sWU1daQ_R4vURLD7D4hEfT2TNCbkKL5yXQ8JxRWqKw8jlo7IUVVUllNt8CC-aZDdbIVpKxAyF3AunTl4FrSrzw8Mu0X7KxdjKAejvlprI84Sh69_HrPajLNS8"
+      image: "/showcase/portfolio-1.jpg"
     },
     {
       title: "Interior Space Transformation",
@@ -141,7 +141,7 @@ export default function Portfolio() {
         "Creating a cleaner and more professional overall appearance"
       ],
       result: "The completed space became more efficient for operations and significantly more appealing to customers, directly improving its usability and value.",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAyhLfJI6qcVsd547X9vsbARSrm5GpwUKhF1HoFXKBBL9kGpzmc7HstQP6ak-NEl0EiBxou5nIkozYkc69mjhRrHNQqpt2wXTgn2GEaofQLgJzWUHMWaftvsLI1iM4nsMtqS_SDB_IlDqVuRRvxRw86jBhuoZNwqftw_526fbrIl6pL2TgzpMCeya4hcS6dJVY5sgsBz-YkI6jIxAyweo84J_rdvcfjE2OF69UVBk5pKFk1M9xbZazpWqXms6QDsi1_61fxmjOOMMw"
+      image: "/showcase/portfolio-2.jpg"
     },
     {
       title: "Residential Interior Upgrade",
@@ -155,7 +155,7 @@ export default function Portfolio() {
         "Ensuring consistency in design across the space"
       ],
       result: "The result was a well-balanced residential interior that felt more organized, modern, and suitable for everyday living.",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDfwlau3HJ5dxfSxI6IMFl_i59YPCeUTuNOmUEb3Y14OeQemBQqkZAKks3SVhgITJxGuAWP_elxuY4lMB0i5-_qcGAuQWEUQNR_lHuuERE6aDo4Al0TfsSp7vOBVOKg2voPtQWM08Ib4zEu6b_ZQtj4mxpy7potvRYXktCnF1U9f5dxJmX23To6GqYjO6TDFVs3glb1Jb991qYt01-aPkCvExQF6mHLJB2qAgbcf8YAQJwcOjLEA4HXOPxwh3XtbinxFi9suCwPc_E"
+      image: "/showcase/portfolio-3.jpg"
     },
     {
       title: "Renovation & Structural Improvement",
@@ -169,7 +169,7 @@ export default function Portfolio() {
         "Enhancing the overall appearance of the space"
       ],
       result: "The final outcome was a renewed structure that was safer, more functional, and visually improved, without the need for complete redevelopment.",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBU5rrJrv0XSO0txUIddgRLI4hOVJqCIxPZDcr32giPrLr3EoRik0_-YfPdnc_KtgpzJJm-_45B588EmCsQfjwNwaKxT4PysG9Of6wAyO-byQ3Xn48JvYeevNUaKaK3FY8K-kEftEFLykf5-RLZ0uvao4s9GOUtehJnukMTc-hy-VsI2ob7M114D4l_LsJ5zllEmHvTse1DkBNqRiWe7j7eK-Wj_K6o0gADqR25ghBDDp_8_HZNwJmgTJt0f7a3Rl_AgfdIFSfp3OE"
+      image: "/showcase/portfolio-4.jpg"
     },
     {
       title: "Custom Business Setup",
@@ -183,7 +183,7 @@ export default function Portfolio() {
         "Clean and professional finishing"
       ],
       result: "The completed setup provided the client with a ready-to-use business space that supported both functionality and customer engagement.",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuA4WjWo8QINsAcQrYNWldg-_yGtyRXcaY9GxuqfxqqJUNjJKGVKJK9k6BzdvAdOzlrFc0qGytCm7nFfkPVpw2UlXE0TD5jpBgQTsdfZnze6HPKR-F_LIJU5GB6vFn6scCUpiJeERFbPfixe-j6ROpmSAdI1CdlLIAY80wEX0mhEBON0ym3N7POBq2yiTBXEz4MzKsTFVLNow8pdkmwATpc0EgppXhpFChCjd0QtqA3nJNn-BlEaoP5KLBdor2BL9MWporxSU7Evb2s"
+      image: "/showcase/portfolio-5.jpg"
     }
   ];
 
