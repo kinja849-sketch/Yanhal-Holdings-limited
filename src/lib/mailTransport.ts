@@ -36,8 +36,10 @@ export async function sendMail(msg: MailMessage): Promise<void> {
   const provider = activeMailProvider();
 
   if (provider === 'resend') {
-    // Until a domain is verified in Resend, only onboarding@resend.dev works (and only to the account owner).
-    const fromAddress = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    let fromAddress = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    if (!fromAddress || fromAddress.includes('yourdomain.com')) {
+      fromAddress = 'onboarding@resend.dev';
+    }
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
