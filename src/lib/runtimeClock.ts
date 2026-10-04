@@ -82,11 +82,11 @@ export function answerClockQuestion(message: string, now: Date = new Date()): st
   const c = getRuntimeClock(now);
   const m = (message || '').toLowerCase();
   if (/\bopen|closed\b/.test(m)) {
-    return `It is ${c.timeLabel} EAT on ${c.dateLong}. ${c.officeStatus} Our hours are Monday to Friday 8:00 AM – 5:00 PM and Saturday 9:00 AM – 1:00 PM East Africa Time, closed on Sunday.`;
+    return `It is ${c.timeLabel} on ${c.dateLong}. ${c.officeStatus} Our hours are Monday to Friday 8:00 AM – 5:00 PM and Saturday 9:00 AM – 1:00 PM, closed on Sunday.`;
   }
-  if (/\btime\b/.test(m) && !/\bdate|day\b/.test(m)) return `It is ${c.timeLabel} East Africa Time (EAT) on ${c.dateLong}.`;
+  if (/\btime\b/.test(m) && !/\bdate|day\b/.test(m)) return `It is ${c.timeLabel} on ${c.dateLong}.`;
   if (/\byear\b/.test(m) && !/\bdate\b/.test(m)) return `The current year is ${c.year}.`;
-  return `Today is ${c.dateLong} (East Africa Time).`;
+  return `Today is ${c.dateLong}.`;
 }
 
 const MONTH_ALT = MONTHS.join('|');
@@ -123,7 +123,7 @@ export function guardReplyAgainstClock(
   const cleaned = sentences.join(' ').trim();
   const c = getRuntimeClock(now);
   return {
-    reply: cleaned ? cleaned : `Today is ${c.dateLong} (East Africa Time).`,
+    reply: cleaned ? cleaned : `Today is ${c.dateLong}.`,
     corrected: true,
     badYear,
   };
