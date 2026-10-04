@@ -37,10 +37,16 @@ test('hidden Netlify estimator form is registered with every posted field', () =
   }
 });
 
-test('/api/send-estimate is routed to an existing Netlify function', () => {
+test('/api/send-estimate and /api/assistant/chat are routed to Netlify functions in toml and _redirects', () => {
   const toml = read('netlify.toml');
   assert.match(toml, /from\s*=\s*"\/api\/send-estimate"\s*\n\s*to\s*=\s*"\/\.netlify\/functions\/send-estimate"/);
+  assert.match(toml, /from\s*=\s*"\/api\/assistant\/chat"\s*\n\s*to\s*=\s*"\/\.netlify\/functions\/assistant-chat"/);
   assert.ok(fs.existsSync(path.join(ROOT, 'netlify/functions/send-estimate.ts')));
+  assert.ok(fs.existsSync(path.join(ROOT, 'netlify/functions/assistant-chat.ts')));
+
+  const redirects = read('public/_redirects');
+  assert.match(redirects, /\/api\/send-estimate\s+\/\.netlify\/functions\/send-estimate/);
+  assert.match(redirects, /\/api\/assistant\/chat\s+\/\.netlify\/functions\/assistant-chat/);
 });
 
 test('front-end only shows success after a confirmed response', () => {

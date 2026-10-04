@@ -35,10 +35,21 @@ const require = createRequire(import.meta.url);
 
 let sqlDb: any = null;
 try {
-  // Use node:sqlite built-in engine
+  // Use node:sqlite built-in engine if available
   const { DatabaseSync } = require('node:sqlite');
-  sqlDb = new DatabaseSync(DB_PATH);
-  console.log('[Storage] Native SQL database initialized at:', DB_PATH);
+  const isServerless = !!process.env.NETLIFY || !!process.env.AWS_LAMBDA_FUNCTION_NAME || !!process.env.LAMBDA_TASK_ROOT;
+  if (isServerless) {
+    sqlDb = new DatabaseSync(':memory:');
+    console.log('[Storage] Native SQL database initialized in :memory: (serverless mode)');
+  } else {
+    try {
+      sqlDb = new DatabaseSync(DB_PATH);
+      console.log('[Storage] Native SQL database initialized at:', DB_PATH);
+    } catch (fsErr) {
+      sqlDb = new DatabaseSync(':memory:');
+      console.log('[Storage] Native SQL database fallback to :memory:', fsErr);
+    }
+  }
 
   // Execute Core Relational SQL Schema
   sqlDb.exec(`

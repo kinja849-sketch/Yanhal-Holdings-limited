@@ -1,2 +1,5 @@
-/api/assistant/tts    /.netlify/functions/assistant-tts    200
-/*    /index.html   200
+/api/instagram/*        /.netlify/functions/instagram          200
+/api/assistant/tts      /.netlify/functions/assistant-tts      200
+/api/send-estimate      /.netlify/functions/send-estimate      200
+/api/assistant/chat     /.netlify/functions/assistant-chat     200
+/*                      /index.html                            200
