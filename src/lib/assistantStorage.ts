@@ -6,8 +6,17 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Safe directory resolution for both ESM and CJS bundles
+let baseDir = process.cwd();
+try {
+  // @ts-ignore
+  if (typeof __dirname !== 'undefined') {
+    // @ts-ignore
+    baseDir = __dirname;
+  } else if (typeof import.meta !== 'undefined' && import.meta?.url) {
+    baseDir = path.dirname(fileURLToPath(import.meta.url));
+  }
+} catch (_) {}
 
 // Supabase Client Setup (using environment variables)
 const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
@@ -23,36 +32,38 @@ if (supabaseUrl && supabaseKey) {
 }
 
 // Native SQL Database via node:sqlite
-const DATA_DIR = path.resolve(__dirname, '../../.assistant_data');
-if (!fs.existsSync(DATA_DIR)) {
-  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (_) {}
-}
-
+const DATA_DIR = path.resolve(baseDir, '../../.assistant_data');
 const DB_PATH = path.join(DATA_DIR, 'yanhal_sql.db');
-
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 
 let sqlDb: any = null;
 try {
-  // Use node:sqlite built-in engine if available
-  const { DatabaseSync } = require('node:sqlite');
-  const isServerless = !!process.env.NETLIFY || !!process.env.AWS_LAMBDA_FUNCTION_NAME || !!process.env.LAMBDA_TASK_ROOT;
-  if (isServerless) {
-    sqlDb = new DatabaseSync(':memory:');
-    console.log('[Storage] Native SQL database initialized in :memory: (serverless mode)');
-  } else {
-    try {
-      sqlDb = new DatabaseSync(DB_PATH);
-      console.log('[Storage] Native SQL database initialized at:', DB_PATH);
-    } catch (fsErr) {
-      sqlDb = new DatabaseSync(':memory:');
-      console.log('[Storage] Native SQL database fallback to :memory:', fsErr);
+  // @ts-ignore
+  const reqFn = typeof require === 'function' ? require : null;
+  if (reqFn) {
+    const { DatabaseSync } = reqFn('node:sqlite');
+    if (DatabaseSync) {
+      const isServerless = !!process.env.NETLIFY || !!process.env.AWS_LAMBDA_FUNCTION_NAME || !!process.env.LAMBDA_TASK_ROOT;
+      if (isServerless) {
+        sqlDb = new DatabaseSync(':memory:');
+        console.log('[Storage] Native SQL database initialized in :memory: (serverless mode)');
+      } else {
+        try {
+          if (!fs.existsSync(DATA_DIR)) {
+            try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (_) {}
+          }
+          sqlDb = new DatabaseSync(DB_PATH);
+          console.log('[Storage] Native SQL database initialized at:', DB_PATH);
+        } catch (fsErr) {
+          sqlDb = new DatabaseSync(':memory:');
+          console.log('[Storage] Native SQL database fallback to :memory:', fsErr);
+        }
+      }
     }
   }
 
-  // Execute Core Relational SQL Schema
-  sqlDb.exec(`
+  // Execute Core Relational SQL Schema if database engine was initialized
+  if (sqlDb) {
+    sqlDb.exec(`
     CREATE TABLE IF NOT EXISTS visitors (
       id TEXT PRIMARY KEY,
       anonymous_session_id TEXT UNIQUE NOT NULL,
@@ -189,6 +200,7 @@ try {
       created_at TEXT
     );
   `);
+  }
 } catch (e) {
   console.warn('[Storage] node:sqlite error, using in-memory fallback:', e);
 }
