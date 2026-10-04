@@ -8,7 +8,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { VERIFICATION_TEMPLATE, CONTACT_TEMPLATE } from "./src/emailTemplates.js";
-import { sendEstimateEmails } from "./src/lib/estimateMailer.js";
+import { sendEstimateEmails, estimateHttpResponse } from "./src/lib/estimateMailer.js";
 import { orchestrateAssistant } from "./src/lib/assistantOrchestrator.js";
 import { assistantStorage } from "./src/lib/assistantStorage.js";
 import { searchPlaces } from "./src/lib/placesService.js";
@@ -120,9 +120,8 @@ async function startServer() {
       req.body,
       images.map((f, i) => ({ filename: f.originalname || `estimate_image_${i + 1}.jpg`, content: f.buffer }))
     );
-    if (!result.configured) return res.status(500).json({ success: false, error: "Email service is not configured", ...result });
-    if (!result.companyEmailSent) return res.status(502).json({ success: false, error: "Failed to send email", ...result });
-    res.json({ success: true, ...result });
+    const { status, body } = estimateHttpResponse(result);
+    res.status(status).json(body);
   });
 
   // Assistant Sitewide Conversational API Routes

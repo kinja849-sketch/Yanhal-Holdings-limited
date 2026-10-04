@@ -9,6 +9,10 @@ import { assistantStorage } from './assistantStorage.js';
 import { searchPlaces } from './placesService.js';
 import { checkGenuineAvailability } from './calendarService.js';
 import { sendVisitorSummaryEmail, sendOwnerBriefingEmail } from './emailService.js';
+import {
+  answerClockQuestion, buildRuntimeFactsBlock, detectKnowledgeSources, guardReplyAgainstClock,
+  logKnowledgeSources, NEVER_INVENT_RULES,
+} from './runtimeClock.js';
 import { metricsService } from './metricsService.js';
 import dotenv from 'dotenv';
 
@@ -206,8 +210,10 @@ function buildContextBlock(ctx: OrchestrationRequest['projectContext'], knownEma
   return `   - Visitor details already entered in the Start Project form (treat as stated facts): ${lines.join("; ")}.`;
 }
 
-function buildSystemPrompt(isVoice: boolean, projectContext?: OrchestrationRequest['projectContext'], knownEmail?: string): string {
+export function buildSystemPrompt(isVoice: boolean, projectContext?: OrchestrationRequest['projectContext'], knownEmail?: string, now: Date = new Date()): string {
   return `You are Dahir, a senior project and civil engineer at Yanhal Holdings Limited in Nairobi, Kenya.
+${buildRuntimeFactsBlock(now)}
+${NEVER_INVENT_RULES}
 You are having a direct, professional conversation with a prospective client, property owner, or developer.
 
 CORE CONVERSATIONAL PRINCIPLES:
@@ -362,6 +368,16 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
   // =========================================================================
   // CASE B: INTELLIGENT AGENT CONVERSATION WITH TOOL CALLING
   // =========================================================================
+  // Calendar/time questions are answered from the live clock, never from model memory.
+  let clockAnswered = false;
+  if (!replyText) {
+    const clockAnswer = answerClockQuestion(message);
+    if (clockAnswer) {
+      replyText = clockAnswer;
+      clockAnswered = true;
+    }
+  }
+
   if (!replyText) {
     let apiKey = process.env.OPENAI_API_KEY || "";
     try {
@@ -409,7 +425,7 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
             model: "gpt-4o-mini",
             messages: messagesPayload,
             tools: ASSISTANT_TOOLS,
-            temperature: isVoice ? 0.65 : 0.72,
+            temperature: isVoice ? 0.45 : 0.5,
             max_tokens: isVoice ? 90 : 520,
           }),
           signal: AbortSignal.timeout(10000),
@@ -663,7 +679,7 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
               body: JSON.stringify({
                 model: "gpt-4o-mini",
                 messages: messagesPayload,
-                temperature: isVoice ? 0.65 : 0.72,
+                temperature: isVoice ? 0.45 : 0.5,
                 max_tokens: isVoice ? 90 : 520,
               }),
               signal: AbortSignal.timeout(10000),
@@ -689,6 +705,17 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
         : "I'm experiencing a momentary connection hitch to our live engineering system. Please reach our Nairobi team directly at +254 724 093256, via WhatsApp at +254 740 895374, or at Yanhalholdingslimited@gmail.com, and we will assist you immediately.";
     }
   }
+
+  // Verification step: no reply may state a year that contradicts the live clock.
+  const guarded = guardReplyAgainstClock(replyText);
+  replyText = guarded.reply;
+  logKnowledgeSources('orchestrator', {
+    question: message,
+    sources: detectKnowledgeSources(message, triggeredAction?.type ? [triggeredAction.type] : []),
+    deterministic: clockAnswered,
+    corrected: guarded.corrected,
+    badYear: guarded.badYear,
+  });
 
   // Sanitize reply so it strictly conforms to visitor-facing rule: NO #, *, -, etc.
   replyText = sanitizeVisitorFacingText(replyText);

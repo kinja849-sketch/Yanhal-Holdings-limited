@@ -6,6 +6,7 @@
  */
 
 import { sendMail, isMailConfigured } from './mailTransport.js';
+import { sendOwnerBriefingEmail } from './emailService.js';
 import { ESTIMATE_TEMPLATE } from '../emailTemplates.js';
 
 export interface EstimateFields {
@@ -28,8 +29,11 @@ export interface EstimateFile {
 
 export interface EstimateMailResult {
   configured: boolean;
+  /** The enquiry was durably written to the internal log (always attempted before any email). */
+  recorded: boolean;
   companyEmailSent: boolean;
   clientEmailSent: boolean;
+  ownerBriefingSent: boolean;
   clientEmailSkipped?: string;
   errors: string[];
 }
@@ -49,10 +53,40 @@ export function isSmtpConfigured(): boolean {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+/**
+ * Maps a mail result to the HTTP response used by BOTH the Express dev server and the Netlify function.
+ *  - 200 delivered: the company briefing email was sent.
+ *  - 202 recorded_only: email transport unavailable/failed, but the enquiry was durably logged
+ *    ([ENQUIRY_RECORD]) so the visitor can be told it was received.
+ */
+export function estimateHttpResponse(result: EstimateMailResult): { status: number; body: Record<string, unknown> } {
+  if (result.companyEmailSent) return { status: 200, body: { success: true, deliveryStatus: 'delivered', ...result } };
+  if (result.recorded) {
+    return {
+      status: 202,
+      body: { success: true, deliveryStatus: 'recorded_only', message: 'Enquiry received and recorded; email delivery is delayed.', ...result },
+    };
+  }
+  return { status: 500, body: { success: false, error: 'Failed to record enquiry', ...result } };
+}
+
 export async function sendEstimateEmails(fields: EstimateFields, files: EstimateFile[] = []): Promise<EstimateMailResult> {
-  const result: EstimateMailResult = { configured: isSmtpConfigured(), companyEmailSent: false, clientEmailSent: false, errors: [] };
+  const result: EstimateMailResult = {
+    configured: isSmtpConfigured(), recorded: false, companyEmailSent: false, clientEmailSent: false, ownerBriefingSent: false, errors: [],
+  };
+
+  // 1. Durable internal record FIRST — independent of the mail transport.
+  const enquiryId = `est_${Date.now().toString(36)}`;
+  try {
+    console.log('[ENQUIRY_RECORD]', JSON.stringify({ enquiryId, at: new Date().toISOString(), fields, imageCount: files.length, imageNames: files.map(f => f.filename) }));
+    result.recorded = true;
+  } catch (err: any) {
+    result.errors.push(`Record failed: ${err?.message || err}`);
+  }
+
   if (!result.configured) {
     result.errors.push('No mail provider configured (set RESEND_API_KEY or SMTP_USER/SMTP_PASS).');
+    console.error('[Estimate Mailer] Mail transport NOT configured — enquiry only recorded in logs/Netlify Forms.', enquiryId);
     return result;
   }
 
@@ -90,6 +124,39 @@ export async function sendEstimateEmails(fields: EstimateFields, files: Estimate
   } catch (err: any) {
     console.error('[Estimate Mailer] Company email failed:', err);
     result.errors.push(`Company email failed: ${err?.message || err}`);
+  }
+
+  // 2. Structured owner briefing (dual-summary flow) — triggered automatically after the enquiry is recorded,
+  //    independent of whether the visitor-facing email below succeeds.
+  try {
+    const sizeSqm = Number(fields.size) || 0;
+    const s = (v: unknown, fb = 'Not specified') => escapeHtml(v || fb);
+    const ob = await sendOwnerBriefingEmail({
+      visitorName: s(fields.name),
+      visitorEmail: s(clientEmail, 'Not provided'),
+      visitorPhone: s(fields.phone),
+      enquiryId,
+      projectType: s(fields.service),
+      serviceDepth: 'See message',
+      objective: s(fields.message, 'New Start Project enquiry'),
+      scope: s(fields.scope),
+      sizeSqm,
+      location: s(fields.location),
+      statedFacts: [
+        { key: 'name', value: s(fields.name) }, { key: 'phone', value: s(fields.phone) },
+        { key: 'email', value: s(clientEmail, 'Not provided') }, { key: 'location', value: s(fields.location) },
+        { key: 'budget', value: s(fields.budget) },
+      ],
+      inferredFacts: [],
+      indicativeEstimate: { minKes: 0, maxKes: 0, minUsd: 0, maxUsd: 0, ratePerSqm: 0 },
+      uploadedFiles: files.map(f => ({ fileName: s(f.filename), fileType: 'image', storagePath: 'attached to company email' })),
+      conceptImagesCount: 0,
+      recommendedFollowUp: 'Call the client within one business day and arrange a site inspection.',
+    });
+    result.ownerBriefingSent = ob.success;
+    if (!ob.success && ob.error) result.errors.push(`Owner briefing failed: ${ob.error}`);
+  } catch (err: any) {
+    result.errors.push(`Owner briefing failed: ${err?.message || err}`);
   }
 
   if (!EMAIL_RE.test(clientEmail)) {

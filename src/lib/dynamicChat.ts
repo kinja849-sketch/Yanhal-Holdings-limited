@@ -5,6 +5,10 @@
  */
 
 import { calculateYanhalEstimate, findWebsiteSection, YANHAL_OFFICE_LOCATION } from './assistantKnowledge';
+import {
+  answerClockQuestion, buildRuntimeFactsBlock, detectKnowledgeSources, guardReplyAgainstClock,
+  logKnowledgeSources, NEVER_INVENT_RULES,
+} from './runtimeClock';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -78,7 +82,10 @@ const DYNAMIC_ASSISTANT_TOOLS = [
   }
 ];
 
-const DYNAMIC_SYSTEM_INSTRUCTION = `You are Dahir, a senior project and civil engineer at Yanhal Holdings Limited in Nairobi, Kenya.
+export function buildDynamicSystemInstruction(now: Date = new Date()): string {
+  return `You are Dahir, a senior project and civil engineer at Yanhal Holdings Limited in Nairobi, Kenya.
+${buildRuntimeFactsBlock(now)}
+${NEVER_INVENT_RULES}
 You are having a direct, professional conversation with a prospective client, property owner, or developer.
 
 CORE CONVERSATIONAL PRINCIPLES:
@@ -111,12 +118,32 @@ CORE CONVERSATIONAL PRINCIPLES:
 4. FORMATTING RULES:
    - Output natural conversational prose. DO NOT use bullet points, numbered lists, asterisks (*), hashtags (#), or dash bullets (-).
    - If the visitor uploads an image, analyze and discuss what their image shows (blueprints, site conditions, finishing references).`;
+}
+
+/** Single exit point for model text: sanity-check against the live clock and log provenance. */
+function verifyReply(question: string, reply: string, toolsUsed: string[] = []): string {
+  const guarded = guardReplyAgainstClock(reply);
+  logKnowledgeSources('dynamicChat', {
+    question,
+    sources: detectKnowledgeSources(question, toolsUsed),
+    corrected: guarded.corrected,
+    badYear: guarded.badYear,
+  });
+  return guarded.reply;
+}
 
 export async function generateDynamicAssistantResponse(
   conversationHistory: ChatMessage[],
   userMessage: string,
   attachedImages?: string[]
 ): Promise<{ reply: string; actionType?: string; actionData?: any; navigationTarget?: any }> {
+  // Calendar/time questions never go to the model: answered from the live clock.
+  const clockAnswer = answerClockQuestion(userMessage);
+  if (clockAnswer) {
+    logKnowledgeSources('dynamicChat', { question: userMessage, sources: ['runtime_clock'], deterministic: true });
+    return { reply: clockAnswer };
+  }
+
   let apiKey = "";
   try {
     apiKey = (import.meta as any).env?.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY || "";
@@ -131,7 +158,7 @@ export async function generateDynamicAssistantResponse(
   if (apiKey && apiKey.startsWith("sk-")) {
     try {
       const messagesPayload: any[] = [
-        { role: "system", content: DYNAMIC_SYSTEM_INSTRUCTION },
+        { role: "system", content: buildDynamicSystemInstruction() },
       ];
 
       // Include previous conversation history for memory and context
@@ -167,7 +194,7 @@ export async function generateDynamicAssistantResponse(
           model: "gpt-4o-mini",
           messages: messagesPayload,
           tools: DYNAMIC_ASSISTANT_TOOLS,
-          temperature: 0.72,
+          temperature: 0.5,
           max_tokens: 380,
         }),
         signal: AbortSignal.timeout(10000),
@@ -258,7 +285,7 @@ export async function generateDynamicAssistantResponse(
             body: JSON.stringify({
               model: "gpt-4o-mini",
               messages: messagesPayload,
-              temperature: 0.72,
+              temperature: 0.5,
               max_tokens: 380,
             }),
             signal: AbortSignal.timeout(10000),
@@ -269,7 +296,7 @@ export async function generateDynamicAssistantResponse(
             const text = data2.choices?.[0]?.message?.content;
             if (text && text.trim().length > 0) {
               return {
-                reply: sanitizeNaturalText(text),
+                reply: verifyReply(userMessage, sanitizeNaturalText(text), [funcName]),
                 actionType,
                 actionData,
                 navigationTarget,
@@ -280,7 +307,7 @@ export async function generateDynamicAssistantResponse(
           const directText = choice?.message?.content;
           if (directText && directText.trim().length > 0) {
             return {
-              reply: sanitizeNaturalText(directText),
+              reply: verifyReply(userMessage, sanitizeNaturalText(directText)),
               actionType,
               actionData,
               navigationTarget,

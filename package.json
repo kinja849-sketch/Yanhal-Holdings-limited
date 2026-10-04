@@ -8,7 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "tsx --test tests/prompts.test.ts tests/enquiry.e2e.test.ts",
+    "check:mail": "tsx scripts/predeploy-check.ts",
+    "predeploy": "npm run test && npm run check:mail"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

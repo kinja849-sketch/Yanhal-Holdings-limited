@@ -2,7 +2,7 @@
 // Accepts multipart/form-data, emails the company briefing and the client's summary copy.
 // @ts-ignore - busboy ships no bundled types
 import busboy from 'busboy';
-import { sendEstimateEmails, type EstimateFile } from '../../src/lib/estimateMailer.js';
+import { sendEstimateEmails, estimateHttpResponse, type EstimateFile } from '../../src/lib/estimateMailer.js';
 
 const json = (statusCode: number, obj: unknown) => ({
   statusCode,
@@ -45,11 +45,10 @@ export const handler = async (event: any) => {
     }
 
     const result = await sendEstimateEmails(fields as any, files);
-    if (!result.configured) return json(500, { success: false, error: 'Email service is not configured', ...result });
-    if (!result.companyEmailSent) return json(502, { success: false, error: 'Failed to send email', ...result });
-    return json(200, { success: true, ...result });
+    const { status, body } = estimateHttpResponse(result);
+    return json(status, body);
   } catch (err: any) {
     console.error('[send-estimate] Error:', err);
-    return json(500, { success: false, error: 'Failed to process submission' });
+    return json(500, { success: false, error: `Failed to process submission: ${err?.message || 'unknown error'}` });
   }
 };

@@ -218,25 +218,42 @@ export default function StartProject() {
         apiPayload.set("message", `${formPayload.get("message")} (${formData.images.length} image(s) were too large to attach; client will share them via WhatsApp.)`);
       }
 
-      // Netlify Forms capture (best effort, non-blocking)
-      fetch("/", { method: "POST", body: formPayload }).catch(err => console.log("Form POST handled:", err));
+      // Netlify Forms capture: awaited, so it counts as a durable record if the API route is down.
+      const formsCapture: Promise<boolean> = fetch("/", { method: "POST", body: formPayload })
+        .then(r => r.ok)
+        .catch(err => { console.warn("Netlify Forms capture failed:", err); return false; });
 
-      const res = await fetch("/api/send-estimate", { method: "POST", body: apiPayload });
+      let apiOk = false;
+      let apiError = "";
       let result: any = null;
-      try { result = await res.json(); } catch (_) {}
-
-      if (!res.ok || !result?.success) {
-        throw new Error(result?.error || `Server responded ${res.status}`);
+      try {
+        const res = await fetch("/api/send-estimate", { method: "POST", body: apiPayload });
+        try { result = await res.json(); } catch (_) {}
+        if (res.ok && result?.success) {
+          apiOk = true;
+        } else {
+          apiError = result?.error || `the server responded with status ${res.status}`;
+        }
+      } catch (netErr: any) {
+        apiError = navigator.onLine === false
+          ? "your device appears to be offline"
+          : `we could not reach the server (${netErr?.message || "network error"})`;
       }
 
-      setClientCopyFailed(!result.clientEmailSent);
+      const formsOk = await formsCapture;
+      if (!apiOk && !formsOk) {
+        throw new Error(apiError || "the enquiry could not be recorded");
+      }
+      if (!apiOk) console.warn("Enquiry stored via Netlify Forms only; API route failed:", apiError);
+
+      setClientCopyFailed(!result?.clientEmailSent);
       setIsSubmitted(true);
       setTimeout(() => {
         handleReset();
       }, 7000);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Submission failed:", err);
-      alert("We couldn't send your enquiry just now. Please try again, or call us directly at +254 724 093256.");
+      alert(`We couldn't send your enquiry: ${err?.message || "unexpected error"}. Please try again, or call us directly at +254 724 093256.`);
     } finally {
       setLoading(false);
     }
