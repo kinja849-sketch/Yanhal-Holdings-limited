@@ -289,3 +289,91 @@ export function calculateYanhalEstimate(projectTypeId: string, sizeSqm: number, 
 }
 
 export const YANHAL_OFFICE_LOCATION = YANHAL_KNOWLEDGE.location;
+
+/**
+ * Generates an authentic, warm companion engineering response from verified company knowledge.
+ * Used when external LLM endpoints are unreachable, rate-limited, or out of quota.
+ */
+export function getGroundingCompanionResponse(message: string): { reply: string; actionType?: string; actionData?: any; navigationTarget?: any } {
+  const m = (message || "").trim().toLowerCase();
+
+  // 1. Warm Greeting
+  if (/^(hi|hello|hey|good\s*(morning|afternoon|evening|day)|habari|sasa|mambo|greetings)\b/i.test(m) || m.length <= 4) {
+    return {
+      reply: "Hello! I am Dahir, senior project and civil engineer at Yanhal Holdings Limited. How can I assist you with your construction, renovation, or engineering plans today?",
+    };
+  }
+
+  // 2. Who leads / Leadership / CEO
+  if (/\b(who\s*(is|are|leads|runs)|ceo|leadership|founder|director|manager)\b/i.test(m)) {
+    return {
+      reply: "Yanhal Holdings Limited is led by Ismail Abdirahman as Chief Executive Officer and myself, Dahir Yusuf, as Project Manager overseeing Buildings and Road Construction. Our team coordinates everything from county building approvals and structural designs to turnkey project delivery.",
+      navigationTarget: { panelId: "panel-leadership", anchor: "#leadership", label: "Leadership Team" },
+    };
+  }
+
+  // 3. Location / Office / Address
+  if (/\b(where\s*(are\s*you|is\s*your|located)|headquarters|office\s*address|location|south\s*c|visit\s*you)\b/i.test(m)) {
+    return {
+      reply: "Our physical headquarters is in South C, Behind Masjid As Salaam, Nairobi, Kenya. We undertake civil engineering, commercial, and residential projects across Nairobi and surrounding counties in Kenya.",
+      actionType: "company_location",
+      actionData: YANHAL_OFFICE_LOCATION,
+      navigationTarget: { panelId: "panel-contact", anchor: "#contact", label: "Headquarters & Contact" },
+    };
+  }
+
+  // 4. Hours / Availability
+  if (/\b(hours|open|closed|operating\s*time|working\s*hours)\b/i.test(m)) {
+    return {
+      reply: "Our Nairobi headquarters is open Monday to Friday from 8:00 AM to 5:00 PM, and Saturday from 9:00 AM to 1:00 PM. We are closed on Sunday.",
+    };
+  }
+
+  // 5. Contacts / Phone / WhatsApp / Email
+  if (/\b(contact|phone|call|whatsapp|email|reach\s*you|talk\s*to|inquiry|consultation)\b/i.test(m)) {
+    return {
+      reply: "You can reach our engineering team directly by phone at +254 724 093256, via WhatsApp at +254 740 895374, or by email at Yanhalholdingslimited@gmail.com. We can also arrange an in-person site inspection for your project.",
+    };
+  }
+
+  // 6. Project Estimations / Area pricing
+  const sizeMatch = m.match(/(\d+)\s*(sqm|m2|square\s*met(?:er|re)s?)/i);
+  if (sizeMatch || /\b(estimate|cost|price|budget|rate|how\s*much)\b/i.test(m)) {
+    let pType = "construction";
+    if (m.includes("interior") || m.includes("fitout") || m.includes("fit-out")) pType = "interior";
+    else if (m.includes("renovat") || m.includes("remodel")) pType = "renovation";
+    else if (m.includes("commercial") || m.includes("office") || m.includes("retail")) pType = "commercial";
+    else if (m.includes("structural") || m.includes("engineer")) pType = "engineering";
+
+    const size = sizeMatch ? Math.max(10, Number(sizeMatch[1])) : 150;
+    const calc = calculateYanhalEstimate(pType, size, "standard");
+
+    return {
+      reply: `For a ${size} sqm ${calc.projectType.toLowerCase()} project, our indicative planning benchmark ranges from approximately KES ${calc.minKes.toLocaleString()} to ${calc.maxKes.toLocaleString()} ($${calc.minUsd.toLocaleString()} to $${calc.maxUsd.toLocaleString()} USD), based on standard finishing depth. Please note that exact figures depend on physical site topography, soil conditions, and a full Bill of Quantities. Would you like to schedule an introductory site inspection?`,
+      actionType: "estimate_calculated",
+      actionData: calc,
+      navigationTarget: { panelId: "panel-contact", anchor: "#estimator", label: "Interactive Estimator" },
+    };
+  }
+
+  // 7. Services overview
+  if (/\b(service|services|what\s*do\s*you\s*do|offer|capabilities|work)\b/i.test(m)) {
+    return {
+      reply: "Yanhal Holdings specializes in five core engineering disciplines: New Construction & Civil Works (~45,000 KES/sqm), Interior Design & Fit-Out (~25,000 KES/sqm), Renovation & Remodeling (~30,000 KES/sqm), Custom Commercial Setup (~35,000 KES/sqm), and Structural Engineering (~40,000 KES/sqm). Which discipline fits your project requirements?",
+      navigationTarget: { panelId: "panel-services", anchor: "#services", label: "Services & Disciplines" },
+    };
+  }
+
+  // 8. 6-step blueprint process
+  if (/\b(process|steps|how\s*(it|do\s*you)\s*work|workflow|methodology)\b/i.test(m)) {
+    return {
+      reply: "Our 6-step delivery blueprint begins with Consultation & Site Visit, moving into Planning & Architectural Design, Material Selection, Precision Construction, Quality Assurance Inspections, and Handover with Warranty Support. Every phase is closely managed to ensure compliance with Kenyan NCA building codes.",
+      navigationTarget: { panelId: "panel-process", anchor: "#process", label: "Execution Process" },
+    };
+  }
+
+  // 9. Attentive Companion Fallback
+  return {
+    reply: "I am with you. As a project engineer at Yanhal Holdings, I can guide you through our services, compute indicative project estimates, review site considerations across Kenya, or connect you with our lead team. Tell me more about what you have in mind for your project.",
+  };
+}

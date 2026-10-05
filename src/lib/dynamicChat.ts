@@ -4,7 +4,7 @@
  * Uses authentic engineering comprehension and native tool calling.
  */
 
-import { calculateYanhalEstimate, findWebsiteSection, YANHAL_OFFICE_LOCATION } from './assistantKnowledge';
+import { calculateYanhalEstimate, findWebsiteSection, YANHAL_OFFICE_LOCATION, getGroundingCompanionResponse } from './assistantKnowledge';
 import {
   answerClockQuestion, buildRuntimeFactsBlock, detectKnowledgeSources, guardReplyAgainstClock,
   logKnowledgeSources, NEVER_INVENT_RULES,
@@ -321,11 +321,12 @@ export async function generateDynamicAssistantResponse(
     }
   }
 
-  // Honest message if live AI model is unavailable
+  // Intelligent companion fallback from verified company knowledge
+  const grounded = getGroundingCompanionResponse(userMessage);
   return {
-    reply: "I am experiencing a momentary connection hitch to our live engineering system. Please reach our Nairobi team directly at +254 724 093256, via WhatsApp at +254 740 895374, or at Yanhalholdingslimited@gmail.com, and we will assist you immediately.",
-    actionType,
-    actionData,
-    navigationTarget,
+    reply: verifyReply(userMessage, sanitizeNaturalText(grounded.reply)),
+    actionType: actionType || grounded.actionType,
+    actionData: actionData || grounded.actionData,
+    navigationTarget: navigationTarget || grounded.navigationTarget,
   };
 }

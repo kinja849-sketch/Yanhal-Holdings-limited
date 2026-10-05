@@ -4,7 +4,7 @@
  * Completely eliminates brittle keyword heuristics and pre-written scripts.
  */
 
-import { YANHAL_KNOWLEDGE, YANHAL_OFFICE_LOCATION, findWebsiteSection, calculateYanhalEstimate } from './assistantKnowledge.js';
+import { YANHAL_KNOWLEDGE, YANHAL_OFFICE_LOCATION, findWebsiteSection, calculateYanhalEstimate, getGroundingCompanionResponse } from './assistantKnowledge.js';
 import { assistantStorage } from './assistantStorage.js';
 import { searchPlaces } from './placesService.js';
 import { checkGenuineAvailability } from './calendarService.js';
@@ -701,9 +701,14 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
     }
 
     if (!replyText) {
-      replyText = isVoice
-        ? "I am experiencing a momentary connection hitch to our live engineering system. Please give our Nairobi office a call directly at +254 724 093256 so we can assist you."
-        : "I'm experiencing a momentary connection hitch to our live engineering system. Please reach our Nairobi team directly at +254 724 093256, via WhatsApp at +254 740 895374, or at Yanhalholdingslimited@gmail.com, and we will assist you immediately.";
+      const grounded = getGroundingCompanionResponse(message);
+      replyText = grounded.reply;
+      if (!triggeredAction && grounded.actionType) {
+        triggeredAction = { type: grounded.actionType as any, data: grounded.actionData };
+      }
+      if (!navigationTarget && grounded.navigationTarget) {
+        navigationTarget = grounded.navigationTarget;
+      }
     }
   }
 
