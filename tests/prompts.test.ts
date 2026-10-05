@@ -10,6 +10,7 @@ import {
 } from '../src/lib/runtimeClock.js';
 import { buildDynamicSystemInstruction } from '../src/lib/dynamicChat.js';
 import { buildSystemPrompt } from '../src/lib/assistantOrchestrator.js';
+import { getGroundingCompanionResponse } from '../src/lib/assistantKnowledge.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // 2031-03-05 12:00 UTC => Wednesday, March 5, 2031 3:00 PM EAT. Deliberately NOT the real year.
@@ -78,4 +79,33 @@ test('verification guard removes an implausible year from a generated reply', ()
   assert.ok(g.reply.includes('October 4, 2026'));
   const mixed = guardReplyAgainstClock('Today is October 10, 2023. Our hours are 8 to 5.', now);
   assert.equal(mixed.reply, 'Our hours are 8 to 5.');
+});
+
+test('Yani Bot identifies itself accurately as Yani Bot on name queries and greetings', () => {
+  const nameResp = getGroundingCompanionResponse('What is your name?');
+  assert.ok(nameResp.reply.includes('Yani Bot'), 'Must identify as Yani Bot');
+  assert.ok(!nameResp.reply.startsWith('Hello! I am Dahir'), 'Must not call itself Dahir');
+
+  const greetingResp = getGroundingCompanionResponse('Hi');
+  assert.ok(greetingResp.reply.includes('Yani Bot'), 'Greeting must introduce as Yani Bot');
+  assert.ok(!greetingResp.reply.includes('I am Dahir'), 'Greeting must not introduce as Dahir');
+});
+
+test('Yani Bot answers who the owners are in detail', () => {
+  const ownerResp = getGroundingCompanionResponse('Who are the owners?');
+  assert.ok(ownerResp.reply.includes('Ismail Abdirahman'), 'Must include CEO Ismail Abdirahman');
+  assert.ok(ownerResp.reply.includes('Chief Executive Officer'), 'Must include role CEO');
+  assert.ok(ownerResp.reply.includes('Dahir Yusuf'), 'Must include Dahir Yusuf');
+  assert.ok(ownerResp.reply.includes('Project Manager'), 'Must include role Project Manager');
+  assert.equal(ownerResp.navigationTarget?.anchor, '#leadership');
+});
+
+test('Yani Bot provides comprehensive detail for services', () => {
+  const servResp = getGroundingCompanionResponse('What are the services you provide?');
+  assert.ok(servResp.reply.includes('New Construction & Civil Works'), 'Must include construction');
+  assert.ok(servResp.reply.includes('Interior Design & Fit-Out'), 'Must include interior');
+  assert.ok(servResp.reply.includes('Renovation & Remodeling'), 'Must include renovation');
+  assert.ok(servResp.reply.includes('Custom Commercial Setup'), 'Must include commercial');
+  assert.ok(servResp.reply.includes('Structural Engineering & Project Management'), 'Must include structural');
+  assert.equal(servResp.navigationTarget?.anchor, '#services');
 });

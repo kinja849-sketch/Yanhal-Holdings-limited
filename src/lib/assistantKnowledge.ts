@@ -297,48 +297,79 @@ export const YANHAL_OFFICE_LOCATION = YANHAL_KNOWLEDGE.location;
 export function getGroundingCompanionResponse(message: string): { reply: string; actionType?: string; actionData?: any; navigationTarget?: any } {
   const m = (message || "").trim().toLowerCase();
 
-  // 1. Warm Greeting
-  if (/^(hi|hello|hey|good\s*(morning|afternoon|evening|day)|habari|sasa|mambo|greetings)\b/i.test(m) || m.length <= 4) {
+  // 1. Bot Identity / Name: "What is your name?", "Who are you?", "What are you called?", etc.
+  if (/\b(what('?s| is)? (your )?name|who are you|what are you called|introduce yourself|what('?s| is)? the bot name|your identity|who am i talking to)\b/i.test(m)) {
     return {
-      reply: "Hello! I am Dahir, senior project and civil engineer at Yanhal Holdings Limited. How can I assist you with your construction, renovation, or engineering plans today?",
+      reply: "I am Yani Bot (also known as YanniBot), the intelligent engineering companion and digital representative of Yanhal Holdings Limited. I am here to assist you with our civil engineering and construction services, indicative cost estimations, project planning, and connecting you directly with our leadership team.",
     };
   }
 
-  // 2. Who leads / Leadership / CEO
-  if (/\b(who\s*(is|are|leads|runs)|ceo|leadership|founder|director|manager)\b/i.test(m)) {
+  // 2. Warm Greeting: "hi", "hello", "hey", etc.
+  if (/^(hi|hello|hey|good\s*(morning|afternoon|evening|day)|habari|sasa|mambo|greetings)\b/i.test(m) || m.length <= 4) {
     return {
-      reply: "Yanhal Holdings Limited is led by Ismail Abdirahman as Chief Executive Officer and myself, Dahir Yusuf, as Project Manager overseeing Buildings and Road Construction. Our team coordinates everything from county building approvals and structural designs to turnkey project delivery.",
+      reply: "Hello! I am Yani Bot, the intelligent project and engineering companion for Yanhal Holdings Limited. How can I assist you with your construction, renovation, or engineering plans today?",
+    };
+  }
+
+  // 3. Owners / Founders / Executive Leadership: "Who are the owners?", "Who owns Yanhal?", "Who is the CEO?", etc.
+  if (/\b(owner|owners|who\s*(owns|founded|runs|leads|is\s*the\s*ceo|is\s*in\s*charge)|founder|founders|leadership|ismail|dahir|management|executive)\b/i.test(m)) {
+    return {
+      reply: "Yanhal Holdings Limited is owned and directed by our executive leadership team based at our South C headquarters in Nairobi. Ismail Abdirahman is our Chief Executive Officer (CEO), the founding visionary who steers corporate strategy, commercial development, client partnerships, and large-scale project investments across East Africa. Dahir Yusuf is our Project Manager overseeing Buildings and Road Construction, our senior field director who manages ground-zero site operations, concrete pours, heavy equipment, road works, and strict Kenyan NCA engineering standards. Together, they ensure every project is executed to exacting structural standards without shortcuts.",
       navigationTarget: { panelId: "panel-leadership", anchor: "#leadership", label: "Leadership Team" },
     };
   }
 
-  // 3. Location / Office / Address
-  if (/\b(where\s*(are\s*you|is\s*your|located)|headquarters|office\s*address|location|south\s*c|visit\s*you)\b/i.test(m)) {
+  // 4. Services / Capabilities in Detail: "What are the services you provide?", "What do you do?", etc.
+  if (/\b(service|services|what\s*(are\s*the\s*services|do\s*you\s*(do|provide|offer)|can\s*you\s*do)|capabilities|disciplines|offerings|what\s*work)\b/i.test(m)) {
     return {
-      reply: "Our physical headquarters is in South C, Behind Masjid As Salaam, Nairobi, Kenya. We undertake civil engineering, commercial, and residential projects across Nairobi and surrounding counties in Kenya.",
+      reply: "Yanhal Holdings Limited delivers comprehensive civil engineering and construction services across five core disciplines in Kenya: 1. New Construction & Civil Works, delivering turnkey residential homes, commercial complexes, reinforced concrete structures, foundations, site grading, access roads, and drainage (~45,000 KES per sqm); 2. Interior Design & Fit-Out, creating bespoke corporate offices, retail stores, acoustic ceilings, lighting systems, and custom joinery (~25,000 KES per sqm); 3. Renovation & Remodeling, delivering structural retrofitting, space reconfigurations, and modern upgrades without wasteful demolition (~30,000 KES per sqm); 4. Custom Commercial Setup, building specialized retail shops, kiosks, and operational centers balancing ergonomics and customer flow (~35,000 KES per sqm); and 5. Structural Engineering & Project Management, providing ground and soil condition assessments, Bill of Quantities (BOQ) preparation, architectural drawing validation, and Nairobi City County statutory approval handling (~40,000 KES per sqm). We also guide every project through our structured 6-step blueprint.",
+      navigationTarget: { panelId: "panel-services", anchor: "#services", label: "Services & Disciplines" },
+    };
+  }
+
+  // 5. Website / Start Project form / Platform
+  if (/\b(start\s*(a\s*)?project|website|platform|how\s*to\s*(start|apply|submit|use)|wizard|online\s*form)\b/i.test(m)) {
+    return {
+      reply: "Our platform features an interactive Start Project wizard designed to make initiating your project seamless: Step 1 records your contact information and site location in Kenya; Step 2 lets you choose your engineering discipline and scope; Step 3 lets you input your floor area in square metres and finishing depth to generate an instant indicative cost benchmark; and Step 4 allows you to upload architectural drawings or inspiration photos and review your project brief. Upon submission, you immediately receive a summary copy by email, and our engineering team follows up within one business day.",
+      navigationTarget: { panelId: "panel-contact", anchor: "#contact", label: "Start Your Project" },
+    };
+  }
+
+  // 6. 6-step blueprint process
+  if (/\b(process|steps|how\s*(it|do\s*you)\s*work|workflow|methodology|blueprint)\b/i.test(m)) {
+    return {
+      reply: "Our delivery follows a proven 6-step blueprint: Step 1 Consultation & Site Visit to evaluate physical ground conditions; Step 2 Planning & Architectural Design for detailed structural and engineering drawings; Step 3 Material Selection compliant with Kenyan NCA standards; Step 4 Precision Construction Execution with on-site milestone tracking; Step 5 Quality Assurance & County Inspections ensuring full structural compliance; and Step 6 Handover & Warranty Support with maintenance walk-throughs and continued guidance.",
+      navigationTarget: { panelId: "panel-process", anchor: "#process", label: "Execution Process" },
+    };
+  }
+
+  // 7. Location / Office / Address
+  if (/\b(where\s*(are\s*you|is\s*your|located)|headquarters|office\s*address|location|south\s*c|visit\s*you|address)\b/i.test(m)) {
+    return {
+      reply: "Our physical headquarters is in South C, Behind Masjid As Salaam, Nairobi, Kenya. We undertake civil engineering, commercial, and residential projects across Nairobi and surrounding counties in Kenya. You are welcome to visit our offices or arrange an on-site technical inspection with our engineering team.",
       actionType: "company_location",
       actionData: YANHAL_OFFICE_LOCATION,
       navigationTarget: { panelId: "panel-contact", anchor: "#contact", label: "Headquarters & Contact" },
     };
   }
 
-  // 4. Hours / Availability
-  if (/\b(hours|open|closed|operating\s*time|working\s*hours)\b/i.test(m)) {
+  // 8. Hours / Availability
+  if (/\b(hours|open|closed|operating\s*time|working\s*hours|schedule)\b/i.test(m)) {
     return {
-      reply: "Our Nairobi headquarters is open Monday to Friday from 8:00 AM to 5:00 PM, and Saturday from 9:00 AM to 1:00 PM. We are closed on Sunday.",
+      reply: "Our Nairobi headquarters is open Monday to Friday from 8:00 AM to 5:00 PM, and Saturday from 9:00 AM to 1:00 PM East Africa Time. We are closed on Sunday.",
     };
   }
 
-  // 5. Contacts / Phone / WhatsApp / Email
-  if (/\b(contact|phone|call|whatsapp|email|reach\s*you|talk\s*to|inquiry|consultation)\b/i.test(m)) {
+  // 9. Contacts / Phone / WhatsApp / Email
+  if (/\b(contact|phone|call|whatsapp|email|reach\s*you|talk\s*to|inquiry|consultation|telephone)\b/i.test(m)) {
     return {
-      reply: "You can reach our engineering team directly by phone at +254 724 093256, via WhatsApp at +254 740 895374, or by email at Yanhalholdingslimited@gmail.com. We can also arrange an in-person site inspection for your project.",
+      reply: "You can reach our engineering team directly by phone at +254 724 093256, via WhatsApp at +254 740 895374, or by email at Yanhalholdingslimited@gmail.com. We can also arrange an in-person site inspection or technical consultation for your project.",
     };
   }
 
-  // 6. Project Estimations / Area pricing
+  // 10. Project Estimations / Area pricing
   const sizeMatch = m.match(/(\d+)\s*(sqm|m2|square\s*met(?:er|re)s?)/i);
-  if (sizeMatch || /\b(estimate|cost|price|budget|rate|how\s*much)\b/i.test(m)) {
+  if (sizeMatch || /\b(estimate|cost|price|budget|rate|how\s*much|pricing)\b/i.test(m)) {
     let pType = "construction";
     if (m.includes("interior") || m.includes("fitout") || m.includes("fit-out")) pType = "interior";
     else if (m.includes("renovat") || m.includes("remodel")) pType = "renovation";
@@ -356,24 +387,8 @@ export function getGroundingCompanionResponse(message: string): { reply: string;
     };
   }
 
-  // 7. Services overview
-  if (/\b(service|services|what\s*do\s*you\s*do|offer|capabilities|work)\b/i.test(m)) {
-    return {
-      reply: "Yanhal Holdings specializes in five core engineering disciplines: New Construction & Civil Works (~45,000 KES/sqm), Interior Design & Fit-Out (~25,000 KES/sqm), Renovation & Remodeling (~30,000 KES/sqm), Custom Commercial Setup (~35,000 KES/sqm), and Structural Engineering (~40,000 KES/sqm). Which discipline fits your project requirements?",
-      navigationTarget: { panelId: "panel-services", anchor: "#services", label: "Services & Disciplines" },
-    };
-  }
-
-  // 8. 6-step blueprint process
-  if (/\b(process|steps|how\s*(it|do\s*you)\s*work|workflow|methodology)\b/i.test(m)) {
-    return {
-      reply: "Our 6-step delivery blueprint begins with Consultation & Site Visit, moving into Planning & Architectural Design, Material Selection, Precision Construction, Quality Assurance Inspections, and Handover with Warranty Support. Every phase is closely managed to ensure compliance with Kenyan NCA building codes.",
-      navigationTarget: { panelId: "panel-process", anchor: "#process", label: "Execution Process" },
-    };
-  }
-
-  // 9. Attentive Companion Fallback
+  // 11. Attentive Companion Fallback
   return {
-    reply: "I am with you. As a project engineer at Yanhal Holdings, I can guide you through our services, compute indicative project estimates, review site considerations across Kenya, or connect you with our lead team. Tell me more about what you have in mind for your project.",
+    reply: "I am Yani Bot, your engineering and project companion at Yanhal Holdings Limited. I have full knowledge of our construction disciplines, leadership team, indicative cost benchmarks, and project execution workflows across Kenya. Tell me what you have in mind for your project, or ask me any question about our work.",
   };
 }
