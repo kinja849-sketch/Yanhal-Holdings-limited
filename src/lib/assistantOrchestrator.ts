@@ -5,6 +5,7 @@
  */
 
 import { YANHAL_KNOWLEDGE, YANHAL_OFFICE_LOCATION, findWebsiteSection, calculateYanhalEstimate, getGroundingCompanionResponse } from './assistantKnowledge.js';
+import { generateGeminiBackupResponse } from './geminiService.js';
 import { assistantStorage } from './assistantStorage.js';
 import { searchPlaces } from './placesService.js';
 import { checkGenuineAvailability } from './calendarService.js';
@@ -699,6 +700,21 @@ export async function orchestrateAssistant(req: OrchestrationRequest): Promise<O
         }
       } catch (err) {
         console.warn("[Orchestrator] OpenAI request notice:", err);
+      }
+    }
+
+    // Backup LLM: Google Gemini
+    if (!replyText) {
+      try {
+        const systemPrompt = buildSystemPrompt(isVoice, projectContext, visitor.email || undefined);
+        const prior = conversation.id ? await assistantStorage.getMessages(conversation.id) : [];
+        const history = prior.filter(m => m.content).map(m => ({ role: m.sender, content: m.content }));
+        const geminiReply = await generateGeminiBackupResponse(systemPrompt, message, history);
+        if (geminiReply) {
+          replyText = geminiReply;
+        }
+      } catch (geminiErr) {
+        console.warn("[Orchestrator] Gemini backup notice:", geminiErr);
       }
     }
 

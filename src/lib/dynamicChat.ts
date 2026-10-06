@@ -5,6 +5,7 @@
  */
 
 import { calculateYanhalEstimate, findWebsiteSection, YANHAL_OFFICE_LOCATION, getGroundingCompanionResponse } from './assistantKnowledge';
+import { generateGeminiBackupResponse } from './geminiService';
 import {
   answerClockQuestion, buildRuntimeFactsBlock, detectKnowledgeSources, guardReplyAgainstClock,
   logKnowledgeSources, NEVER_INVENT_RULES,
@@ -321,6 +322,25 @@ export async function generateDynamicAssistantResponse(
     } catch (err) {
       console.warn("[Dynamic Chat] OpenAI request notice:", err);
     }
+  }
+
+  // Backup LLM: Google Gemini
+  try {
+    const geminiReply = await generateGeminiBackupResponse(
+      buildDynamicSystemInstruction(),
+      userMessage,
+      conversationHistory
+    );
+    if (geminiReply) {
+      return {
+        reply: verifyReply(userMessage, sanitizeNaturalText(geminiReply)),
+        actionType,
+        actionData,
+        navigationTarget,
+      };
+    }
+  } catch (err) {
+    console.warn("[Dynamic Chat] Gemini backup notice:", err);
   }
 
   // Intelligent companion fallback from verified company knowledge
