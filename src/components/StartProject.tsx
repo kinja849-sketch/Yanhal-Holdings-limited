@@ -253,7 +253,7 @@ export default function StartProject() {
       }, 7000);
     } catch (err: any) {
       console.error("Submission failed:", err);
-      alert(`We couldn't send your enquiry: ${err?.message || "unexpected error"}. Please try again, or call us directly at +254 724 093256.`);
+      alert(`We couldn't send your enquiry: ${err?.message || "unexpected error"}. Please try again, or call us directly at +254 740 895374.`);
     } finally {
       setLoading(false);
     }

@@ -118,7 +118,7 @@ export async function sendVisitorSummaryEmail(data: VisitorSummaryData): Promise
           </div>
 
           <p style="font-size: 13px; color: #a8a29e; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px; margin-top: 24px;">
-            Need immediate clarification? Reach our Nairobi HQ directly at <a href="tel:+254724093256" style="color: #E0B9A0;">+254 724 093256</a> or via WhatsApp at <a href="https://wa.me/254740895374" style="color: #E0B9A0;">+254 740 895374</a>.
+            Need immediate clarification? Reach our Nairobi HQ directly by phone or WhatsApp at <a href="tel:+254740895374" style="color: #E0B9A0;">+254 740 895374</a> (<a href="https://wa.me/254740895374" style="color: #E0B9A0;">WhatsApp</a>).
           </p>
         </div>
       </div>

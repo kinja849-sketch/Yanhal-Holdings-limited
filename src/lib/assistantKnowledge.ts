@@ -25,7 +25,7 @@ export const YANHAL_KNOWLEDGE = {
     brandName: "Yanhal Holdings Ltd",
     establishedYear: 2020,
     headquarters: "South C, Behind Masjid As Salaam, Nairobi, Kenya",
-    directPhone: "+254 724 093256",
+    directPhone: "+254 740 895374",
     secondaryPhoneOrWhatsApp: "+254 740 895374",
     email: "Yanhalholdingslimited@gmail.com",
     timezone: "Africa/Nairobi",
@@ -363,7 +363,7 @@ export function getGroundingCompanionResponse(message: string): { reply: string;
   // 9. Contacts / Phone / WhatsApp / Email
   if (/\b(contact|phone|call|whatsapp|email|reach\s*you|talk\s*to|inquiry|consultation|telephone)\b/i.test(m)) {
     return {
-      reply: "You can reach our engineering team directly by phone at +254 724 093256, via WhatsApp at +254 740 895374, or by email at Yanhalholdingslimited@gmail.com. We can also arrange an in-person site inspection or technical consultation for your project.",
+      reply: "You can reach our engineering team directly by phone or WhatsApp at +254 740 895374, or by email at Yanhalholdingslimited@gmail.com. We can also arrange an in-person site inspection or technical consultation for your project.",
     };
   }
 

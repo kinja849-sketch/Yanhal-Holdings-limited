@@ -38,7 +38,7 @@ export const handler = async (event: any) => {
     console.error('[assistant-chat] Error:', error);
     return json(500, {
       success: false,
-      reply: 'I encountered a momentary issue processing that request. Please try again or reach our Nairobi headquarters directly at +254 724 093256.',
+      reply: 'I encountered a momentary issue processing that request. Please try again or reach our Nairobi headquarters directly at +254 740 895374.',
     });
   }
 };

@@ -189,7 +189,7 @@ async function startServer() {
       console.error("[Assistant API Error]:", error);
       res.status(500).json({ 
         success: false, 
-        reply: "I encountered a momentary issue processing that request. Please try again or reach our Nairobi headquarters directly at +254 724 093256." 
+        reply: "I encountered a momentary issue processing that request. Please try again or reach our Nairobi headquarters directly at +254 740 895374." 
       });
     }
   });

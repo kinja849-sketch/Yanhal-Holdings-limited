@@ -184,7 +184,7 @@ export async function sendEstimateEmails(fields: EstimateFields, files: Estimate
       </table>
       <p style="font-size:13px;background:#faf8f5;border-left:4px solid #E0B9A0;padding:12px;margin-top:20px;white-space:pre-wrap;">${e(fields.message)}</p>
       <p><strong>Next step:</strong> our engineering lead will review your scope and contact you within one business day to arrange a site inspection. The figures above are indicative only and subject to site assessment and a Bill of Quantities.</p>
-      <p style="font-size:13px;color:#78716c;border-top:1px solid #eee;padding-top:12px;">Questions? Call <a href="tel:+254724093256">+254 724 093256</a> or WhatsApp <a href="https://wa.me/254740895374">+254 740 895374</a>.</p>
+      <p style="font-size:13px;color:#78716c;border-top:1px solid #eee;padding-top:12px;">Questions? Call or WhatsApp <a href="tel:+254740895374">+254 740 895374</a> (<a href="https://wa.me/254740895374">WhatsApp</a>).</p>
     </div>
   </div>
 </body></html>`;

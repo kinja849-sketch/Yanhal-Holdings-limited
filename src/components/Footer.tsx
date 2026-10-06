@@ -249,18 +249,18 @@ export default function Footer() {
 
               {/* Phone Number */}
               <a 
-                href="tel:0724093256" 
+                href="tel:0740895374" 
                 onClick={(e) => {
                   e.preventDefault();
                   transitionManager.transitionTo({
-                    destination: "tel:0724093256",
+                    destination: "tel:0740895374",
                     label: "DIRECT LINE · CALL",
                     isExternal: true,
                   });
                 }}
                 className="w-11 h-11 sm:w-12 sm:h-12 border border-white/20 hover:border-[#E0B9A0] bg-white/[0.05] hover:bg-[#E0B9A0]/10 rounded-lg flex items-center justify-center text-white hover:text-[#E0B9A0] transition-all duration-300 shadow-md group cursor-pointer shrink-0" 
                 aria-label="Phone Number"
-                title="0724093256"
+                title="+254 740 895374"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 transition-transform duration-300 group-hover:scale-110">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
